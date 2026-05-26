@@ -1,140 +1,90 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
 import RivieraHeader from "@/app/components/RivieraHeader";
+import { questions } from "@/app/data/quizQuestions";
 
-const questions = [
-  {
-    id: 1,
-    text: "Vilken stad är Sveriges huvudstad?",
-    options: [
-      "1 — Stockholm",
-      "X — Göteborg",
-      "2 — Malmö",
-    ],
-    correctAnswer: "1",
-  },
-  {
-    id: 2,
-    text: "Vilket tal kommer efter 1?",
-    options: [
-      "1 — 3",
-      "X — 7",
-      "2 — 2",
-    ],
-    correctAnswer: "2",
-  },
-];
+type QuizAnswer = {
+  question_id: number;
+};
 
-export default function QuizPage() {
+export default function QuizOverviewPage() {
   const params = useParams();
-  const router = useRouter();
   const team = params.team as string;
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState("");
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [answeredQuestions, setAnsweredQuestions] = useState<number[]>([]);
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  async function loadAnswers() {
+    const { data } = await supabase
+      .from("quiz_answers")
+      .select("question_id")
+      .eq("team", team);
 
-  function chooseAnswer(answer: string) {
-    setSelectedAnswer(answer);
-    setShowConfirm(true);
-  }
-
-  async function confirmAnswer() {
-    const answerToSave = selectedAnswer.charAt(0);
-
-    const { error } = await supabase.from("quiz_answers").insert({
-      team,
-      question_id: currentQuestion.id,
-      answer: answerToSave,
-    });
-
-    if (error) {
-      alert("Supabase-fel: " + error.message);
-      return;
-    }
-
-    setAnswers({
-      ...answers,
-      [currentQuestion.id]: answerToSave,
-    });
-
-    setSelectedAnswer("");
-    setShowConfirm(false);
-
-    if (!isLastQuestion) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      router.push(`/team/${team}`);
+    if (data) {
+      setAnsweredQuestions(data.map((answer: QuizAnswer) => answer.question_id));
     }
   }
+
+  useEffect(() => {
+    loadAnswers();
+  }, []);
+
+  const allDone = answeredQuestions.length === questions.length;
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-md mx-auto pt-10">
+      <div className="max-w-md mx-auto pt-6">
         <RivieraHeader />
-        <div className="mb-6 text-center">
-          <p className="text-yellow-400 font-bold uppercase tracking-wide">
-            Moment 1
-          </p>
 
-          <h1 className="text-4xl font-bold mt-2">Quiz</h1>
+        <h1 className="text-4xl font-bold text-center mb-2 mt-8">
+          Quiz
+        </h1>
 
-          <p className="text-gray-400 mt-2">
-            Fråga {currentQuestionIndex + 1} av {questions.length}
-          </p>
-        </div>
+        <p className="text-gray-400 text-center mb-8">
+          Välj fråga. Ni kan ta frågorna i valfri ordning.
+        </p>
 
-        <div className="bg-zinc-900 rounded-3xl p-6 shadow-xl border border-zinc-800">
-          <h2 className="text-3xl font-bold text-center mb-8">
-            {currentQuestion.text}
-          </h2>
+        <div className="grid gap-3">
+          {questions.map((question) => {
+            const isAnswered = answeredQuestions.includes(question.id);
 
-          <div className="grid gap-4">
-            {currentQuestion.options.map((option) => (
-              <button
-                key={option}
-                onClick={() => chooseAnswer(option)}
-                className="bg-zinc-800 border border-zinc-700 p-6 rounded-2xl text-3xl font-bold hover:bg-zinc-700 active:scale-95 transition"
+            return (
+              <Link
+                key={question.id}
+                href={`/team/${team}/quiz/${question.id}`}
+                className={`p-4 rounded-2xl font-bold text-lg flex justify-between items-center ${
+                  isAnswered
+                    ? "bg-green-500 text-black"
+                    : "bg-zinc-900 text-white border border-zinc-800"
+                }`}
               >
-                {option}
-              </button>
-            ))}
-          </div>
-
-          {showConfirm && (
-            <div className="mt-6 bg-yellow-400 text-black p-5 rounded-2xl">
-              <p className="font-bold text-xl mb-2">Är ni säkra?</p>
-
-              <p className="mb-4">
-                Ni har valt <strong>{selectedAnswer}</strong>. Svaret kan inte
-                ändras efter att ni skickat in.
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={confirmAnswer}
-                  className="bg-black text-white px-4 py-4 rounded-xl font-bold"
-                >
-                  Skicka
-                </button>
-
-                <button
-                  onClick={() => setShowConfirm(false)}
-                  className="bg-white text-black px-4 py-4 rounded-xl font-bold"
-                >
-                  Ändra
-                </button>
-              </div>
-            </div>
-          )}
+                <span>Fråga {question.id}</span>
+                <span>{isAnswered ? "✅ Klar" : "Svara"}</span>
+              </Link>
+            );
+          })}
         </div>
+
+        {allDone && (
+          <div className="mt-8 bg-yellow-400 text-black p-6 rounded-3xl text-center">
+            <h2 className="text-2xl font-black mb-2">
+              Quiz klart ✅
+            </h2>
+            <p className="font-bold">
+              Alla quizfrågor är besvarade.
+            </p>
+          </div>
+        )}
+
+        <Link
+          href={`/team/${team}`}
+          className="block mt-8 text-center text-yellow-400 font-bold"
+        >
+          Tillbaka till momentmenyn
+        </Link>
       </div>
     </main>
   );

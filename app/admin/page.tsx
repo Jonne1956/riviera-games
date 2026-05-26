@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { questions } from "@/app/data/quizQuestions";
 
 type QuizAnswer = {
   id: number;
@@ -28,18 +29,6 @@ type PhotoSubmission = {
 
 const teams = ["gul", "bla", "gron", "rod"];
 
-const questions = [
-  {
-    id: 1,
-    title: "Vilken stad är Sveriges huvudstad?",
-    correctAnswer: "1",
-  },
-  {
-    id: 2,
-    title: "Vilket tal kommer efter 1?",
-    correctAnswer: "2",
-  },
-];
 
 const correctDrinks = {
   drink_1: "Öl",

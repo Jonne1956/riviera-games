@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import RivieraHeader from "@/app/components/RivieraHeader";
+import { questions } from "@/app/data/quizQuestions";
 
 type QuizAnswer = {
   team: string;
@@ -32,10 +33,6 @@ const teamNames: Record<string, string> = {
   rod: "Röd",
 };
 
-const questions = [
-  { id: 1, correctAnswer: "1" },
-  { id: 2, correctAnswer: "2" },
-];
 
 const correctDrinks = {
   drink_1: "Öl",

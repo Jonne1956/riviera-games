@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import RivieraHeader from "@/app/components/RivieraHeader";
+import { questions } from "@/app/data/quizQuestions";
 
 const teamNames: Record<string, string> = {
   gul: "Lag Gul",
@@ -41,7 +42,7 @@ export default function TeamPage() {
       .eq("team", team)
       .limit(1);
 
-    setQuizDone(Boolean(quizData && quizData.length > 0));
+    setQuizDone(Boolean(quizData && quizData.length === questions.length));
     setDrinksDone(Boolean(drinkData && drinkData.length > 0));
     setPhotoDone(Boolean(photoData && photoData.length > 0));
   }

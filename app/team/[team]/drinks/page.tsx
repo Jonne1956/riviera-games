@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import RivieraHeader from "@/app/components/RivieraHeader";
 
+
 const drinkOptions = [
   "Öl",
   "Alkoholfri öl",
