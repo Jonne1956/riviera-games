@@ -48,7 +48,7 @@ export default function QuizQuestionPage() {
 
     const { error } = await supabase.from("quiz_answers").insert({
       team,
-      question_id: question.id,
+      question_id: question?.id,
       answer: answerToSave,
     });
 
