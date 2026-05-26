@@ -318,7 +318,7 @@ export default function AdminPage() {
                       className="bg-zinc-800 p-3 rounded-xl flex justify-between gap-4"
                     >
                       <span>
-                        {question.title}
+                        question.text
                       </span>
 
                       {answer ? (
