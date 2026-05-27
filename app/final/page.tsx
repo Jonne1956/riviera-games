@@ -5,25 +5,6 @@ import { supabase } from "@/lib/supabase";
 import RivieraHeader from "@/app/components/RivieraHeader";
 import { questions } from "@/app/data/quizQuestions";
 
-type QuizAnswer = {
-  team: string;
-  question_id: number;
-  answer: string;
-};
-
-type DrinkAnswer = {
-  team: string;
-  drink_1: string;
-  drink_2: string;
-  drink_3: string;
-  drink_4: string;
-};
-
-type PhotoSubmission = {
-  team: string;
-  photo_score: number | null;
-};
-
 const teams = ["gul", "bla", "gron", "rod"];
 
 const teamNames: Record<string, string> = {
@@ -33,6 +14,12 @@ const teamNames: Record<string, string> = {
   rod: "Röd",
 };
 
+const teamColors: Record<string, string> = {
+  gul: "bg-yellow-400 text-black",
+  bla: "bg-blue-500 text-white",
+  gron: "bg-green-500 text-white",
+  rod: "bg-red-500 text-white",
+};
 
 const correctDrinks = {
   drink_1: "Öl",
@@ -42,123 +29,146 @@ const correctDrinks = {
 };
 
 export default function FinalPage() {
-  const [quizAnswers, setQuizAnswers] = useState<QuizAnswer[]>([]);
-  const [drinkAnswers, setDrinkAnswers] = useState<DrinkAnswer[]>([]);
-  const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
   async function loadData() {
-    const { data: quizData } = await supabase
+    const { data: quizAnswers } = await supabase
       .from("quiz_answers")
       .select("*");
 
-    const { data: drinkData } = await supabase
+    const { data: drinkAnswers } = await supabase
       .from("drink_answers")
       .select("*");
 
-    const { data: photoData } = await supabase
+    const { data: photos } = await supabase
       .from("photo_submissions")
       .select("*");
 
-    if (quizData) setQuizAnswers(quizData);
-    if (drinkData) setDrinkAnswers(drinkData);
-    if (photoData) setPhotos(photoData);
+    function getQuizScore(team: string) {
+      return (
+        quizAnswers
+          ?.filter((a) => a.team === team)
+          .filter((a) => {
+            const question = questions.find(
+              (q) => q.id === a.question_id
+            );
+
+            return question?.correctAnswer === a.answer;
+          }).length || 0
+      );
+    }
+
+    function getDrinkScore(team: string) {
+      const drinks = drinkAnswers?.find((d) => d.team === team);
+
+      if (!drinks) return 0;
+
+      let score = 0;
+
+      if (drinks.drink_1 === correctDrinks.drink_1) score++;
+      if (drinks.drink_2 === correctDrinks.drink_2) score++;
+      if (drinks.drink_3 === correctDrinks.drink_3) score++;
+      if (drinks.drink_4 === correctDrinks.drink_4) score++;
+
+      return score;
+    }
+
+    function getPhotoScore(team: string) {
+      const photo = photos?.find((p) => p.team === team);
+
+      return photo?.photo_score || 0;
+    }
+
+    const results = teams
+      .map((team) => ({
+        team,
+        total:
+          getQuizScore(team) +
+          getDrinkScore(team) +
+          getPhotoScore(team),
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    setLeaderboard(results);
   }
 
   useEffect(() => {
     loadData();
 
-    const interval = setInterval(() => {
-      loadData();
-    }, 3000);
+    const interval = setInterval(loadData, 3000);
 
     return () => clearInterval(interval);
   }, []);
+  useEffect(() => {
+  const audio = new Audio("/sounds/winner.mp3");
 
-  function getQuizScore(team: string) {
-    return quizAnswers
-      .filter((answer) => answer.team === team)
-      .filter((answer) => {
-        const question = questions.find(
-          (q) => q.id === answer.question_id
-        );
+  audio.volume = 0.7;
 
-        return question?.correctAnswer === answer.answer;
-      }).length;
-  }
-
-  function getDrinkScore(team: string) {
-    const drinks = drinkAnswers.find(
-      (d) => d.team === team
-    );
-
-    if (!drinks) return 0;
-
-    let score = 0;
-
-    if (drinks.drink_1 === correctDrinks.drink_1) score++;
-    if (drinks.drink_2 === correctDrinks.drink_2) score++;
-    if (drinks.drink_3 === correctDrinks.drink_3) score++;
-    if (drinks.drink_4 === correctDrinks.drink_4) score++;
-
-    return score;
-  }
-
-  function getPhotoScore(team: string) {
-    const photo = photos.find(
-      (p) => p.team === team
-    );
-
-    return photo?.photo_score || 0;
-  }
-
-  const leaderboard = teams
-    .map((team) => ({
-      team,
-      total:
-        getQuizScore(team) +
-        getDrinkScore(team) +
-        getPhotoScore(team),
-    }))
-    .sort((a, b) => b.total - a.total);
+  audio.play().catch(() => {
+    console.log("Autoplay blocked");
+  });
+}, []);
 
   const winner = leaderboard[0];
+  const rest = leaderboard.slice(1);
+
+ 
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 flex items-center justify-center">
-      <div className="max-w-3xl w-full text-center">
+    <main className="min-h-screen bg-black text-white p-6 overflow-hidden">
+      
+
+      <div className="max-w-2xl mx-auto pt-8 relative z-10">
         <RivieraHeader />
 
-        <div className="text-7xl mb-6">
-          🎉🏆🎉
-        </div>
-
-        <p className="text-yellow-400 font-bold uppercase tracking-widest mb-3">
-          Riviera Games Champions
-        </p>
-
-        <h1 className="text-[70px] md:text-[120px] font-black uppercase leading-none text-yellow-400">
-          Lag {teamNames[winner.team]}
+        <h1 className="text-5xl font-black text-center mt-10">
+          FINALRESULTAT
         </h1>
+        <button
+  onClick={() => {
+    const audio = new Audio("/sounds/winner.mp3");
+    audio.volume = 0.7;
+    audio.play();
+  }}
+  className="mt-6 bg-yellow-400 text-black px-6 py-3 rounded-2xl font-black"
+>
+  Spela fanfar 🔊
+</button>
 
-        <p className="text-4xl font-bold mt-6">
-          {winner.total} poäng
-        </p>
+        
+        {winner && (
+          <section
+            className={`${teamColors[winner.team]} p-8 rounded-[2rem] text-center mt-10 mb-8 shadow-2xl`}
+          >
+            <p className="text-6xl mb-3">🏆</p>
 
-        <p className="text-gray-400 text-xl mt-4">
-          Stort grattis – ni är kvällens vinnare! 🌴🥂
-        </p>
+            <p className="uppercase font-black tracking-widest text-sm">
+              Vinnare
+            </p>
 
-        <div className="grid gap-3 mt-10 max-w-md mx-auto">
-          {leaderboard.map((row, index) => (
+            <h2 className="text-5xl font-black uppercase mt-2">
+              Lag {teamNames[winner.team]}
+            </h2>
+
+            <p className="text-5xl font-black mt-4">
+              {winner.total} p
+            </p>
+          </section>
+        )}
+
+        <div className="grid gap-3 mt-8 max-w-md mx-auto">
+          {rest.map((row, index) => (
             <div
               key={row.team}
               className="bg-zinc-900 p-4 rounded-2xl flex justify-between items-center"
             >
               <span className="text-xl font-bold uppercase">
-                {index + 1}. Lag {teamNames[row.team]}
+                {index + 2}. Lag {teamNames[row.team]}
               </span>
 
-              <span className="bg-yellow-400 text-black px-4 py-2 rounded-xl font-bold">
+              <span
+                className={`${teamColors[row.team]} px-4 py-2 rounded-xl font-bold`}
+              >
                 {row.total} p
               </span>
             </div>

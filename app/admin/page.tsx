@@ -168,7 +168,11 @@ export default function AdminPage() {
       .delete()
       .gte("id", 0);
 
-    setAnswers([]);
+    localStorage.removeItem("team-access-gul");
+localStorage.removeItem("team-access-bla");
+localStorage.removeItem("team-access-gron");
+localStorage.removeItem("team-access-rod");
+setAnswers([]);
     setDrinkAnswers([]);
     setPhotos([]);
 
