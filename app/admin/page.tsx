@@ -103,25 +103,90 @@ export default function AdminPage() {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center p-6">
         <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 w-full max-w-sm">
-          <h1 className="text-4xl font-black text-center mb-6">
-            Admin Login
-          </h1>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+  <h2 className="text-3xl font-black mb-6">
+    🏆 LIVE LEADERBOARD
+  </h2>
 
-          <input
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="PIN-kod"
-            className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 text-center text-2xl mb-4"
-          />
+  <div className="grid gap-4">
+    {[
+      {
+        team: "rod",
+        name: "Lag Röd",
+        color: "bg-red-500",
+      },
+      {
+        team: "bla",
+        name: "Lag Blå",
+        color: "bg-blue-500",
+      },
+      {
+        team: "gul",
+        name: "Lag Gul",
+        color: "bg-yellow-400 text-black",
+      },
+      {
+        team: "gron",
+        name: "Lag Grön",
+        color: "bg-green-500",
+      },
+    ].map((teamData) => {
+      const quizPoints = quizAnswers.filter(
+        (q) => q.team === teamData.team
+      ).length;
 
-          <button
-            onClick={login}
-            className="w-full bg-yellow-400 text-black font-black p-4 rounded-2xl"
-          >
-            Logga in
-          </button>
+      const drinkDone = drinkAnswers.some(
+        (d) => d.team === teamData.team
+      );
+
+      const photoDone = photos.some(
+        (p) => p.team === teamData.team
+      );
+
+      const total =
+        quizPoints +
+        (drinkDone ? 1 : 0) +
+        (photoDone ? 1 : 0);
+
+      return (
+        <div
+          key={teamData.team}
+          className="bg-zinc-800 rounded-2xl p-5 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className={`${teamData.color} w-5 h-5 rounded-full`}
+            />
+
+            <div>
+              <p className="text-2xl font-black">
+                {teamData.name}
+              </p>
+
+              <div className="flex gap-2 mt-1 text-sm">
+                <span>
+                  🧠 {quizPoints} quiz
+                </span>
+
+                <span>
+                  🍹 {drinkDone ? "klart" : "-"}
+                </span>
+
+                <span>
+                  📸 {photoDone ? "klart" : "-"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-4xl font-black text-yellow-400">
+            {total} p
+          </div>
         </div>
+      );
+    })}
+  </div>
+</div>
       </main>
     );
   }
