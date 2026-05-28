@@ -56,6 +56,12 @@ export default function DrinkRevealPage() {
     <main className="min-h-screen bg-black text-white p-6">
       <div className="max-w-5xl mx-auto pt-8">
         <RivieraHeader />
+        <a
+  href="/admin"
+  className="inline-block mb-6 bg-zinc-800 text-white px-4 py-2 rounded-xl font-bold"
+>
+  ← Admin
+</a>
 
         <h1 className="text-5xl font-black text-center mt-10 mb-10">
           🍹 DRINK REVEAL

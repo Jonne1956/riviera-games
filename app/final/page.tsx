@@ -120,6 +120,12 @@ export default function FinalPage() {
 
       <div className="max-w-2xl mx-auto pt-8 relative z-10">
         <RivieraHeader />
+        <a
+  href="/admin"
+  className="inline-block mb-6 bg-zinc-800 text-white px-4 py-2 rounded-xl font-bold"
+>
+  ← Admin
+</a>
 
         <h1 className="text-5xl font-black text-center mt-10">
           FINALRESULTAT
