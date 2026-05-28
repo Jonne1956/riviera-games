@@ -99,15 +99,7 @@ export default function FinalPage() {
 
     return () => clearInterval(interval);
   }, []);
-  useEffect(() => {
-  const audio = new Audio("/sounds/winner.mp3");
-
-  audio.volume = 0.7;
-
-  audio.play().catch(() => {
-    console.log("Autoplay blocked");
-  });
-}, []);
+  
 
   const winner = leaderboard[0];
   const rest = leaderboard.slice(1);
