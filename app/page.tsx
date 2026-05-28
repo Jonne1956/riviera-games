@@ -16,7 +16,7 @@ export default function Home() {
   </h1>
 
   <p className="text-2xl md:text-5xl font-bold mt-6 text-center">
-    Riviera Pool Party – Lasse 70 år
+    Riviera Pool Party – Lasse LXX
   </p>
 
   <p className="text-gray-400 text-xl md:text-3xl mt-6 text-center">

@@ -8,7 +8,7 @@ export default function RivieraHeader() {
       </p>
 
       <p className="text-gray-400 mt-1">
-        Riviera Pool Party – Lasse 70 år
+        Riviera Pool Party – Lasse LXX
       </p>
     </div>
   );
