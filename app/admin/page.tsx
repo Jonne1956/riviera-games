@@ -74,9 +74,10 @@ export default function AdminPage() {
       .select("*");
 
     const { data: photoData } = await supabase
-      .from("photo_submissions")
-      .select("*");
-
+  .from("photo_submissions")
+  .select("*")
+  .order("team");
+  
     if (quizData) setQuizAnswers(quizData);
     if (drinkData) setDrinkAnswers(drinkData);
     if (photoData) setPhotos(photoData);
