@@ -122,9 +122,9 @@ export default function FinalPage() {
         <RivieraHeader />
         <a
   href="/admin"
-  className="inline-block mb-6 bg-zinc-800 text-white px-4 py-2 rounded-xl font-bold"
+  className="fixed top-4 left-4 z-50 bg-zinc-800 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all"
 >
-  ← Admin
+  ←
 </a>
 
         <h1 className="text-5xl font-black text-center mt-10">
@@ -136,9 +136,9 @@ export default function FinalPage() {
     audio.volume = 0.7;
     audio.play();
   }}
-  className="mt-6 bg-yellow-400 text-black px-6 py-3 rounded-2xl font-black"
+  className="fixed top-4 right-4 z-50 bg-yellow-400 text-black w-12 h-12 rounded-full font-black text-xl shadow-2xl hover:scale-110 transition-all"
 >
-  Spela fanfar 🔊
+  🔊
 </button>
 
         

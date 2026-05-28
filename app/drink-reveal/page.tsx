@@ -58,9 +58,9 @@ export default function DrinkRevealPage() {
         <RivieraHeader />
         <a
   href="/admin"
-  className="inline-block mb-6 bg-zinc-800 text-white px-4 py-2 rounded-xl font-bold"
+  className="fixed top-4 left-4 z-50 bg-zinc-800 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all"
 >
-  ← Admin
+  ←
 </a>
 
         <h1 className="text-5xl font-black text-center mt-10 mb-10">
