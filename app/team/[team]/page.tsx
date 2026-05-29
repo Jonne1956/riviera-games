@@ -26,13 +26,13 @@ export default function TeamPage() {
   async function loadStatus() {
     const { data: quizData } = await supabase
       .from("quiz_answers")
-      .select("id")
+      .select("question_id")
       .eq("team", team)
-      .limit(1);
+    
 
     const { data: drinkData } = await supabase
       .from("drink_answers")
-      .select("id")
+      .select("question_id")
       .eq("team", team)
       .limit(1);
 
@@ -40,9 +40,14 @@ export default function TeamPage() {
       .from("photo_submissions")
       .select("id")
       .eq("team", team)
-      .limit(1);
+    .limit(1);
 
-    setQuizDone(Boolean(quizData && quizData.length === questions.length));
+    setQuizDone(
+  Boolean(
+    quizData &&
+      new Set(quizData.map((answer) => answer.question_id)).size >= questions.length
+  )
+);
     setDrinksDone(Boolean(drinkData && drinkData.length > 0));
     setPhotoDone(Boolean(photoData && photoData.length > 0));
   }
