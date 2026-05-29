@@ -26,6 +26,13 @@ type PhotoSubmission = {
   photo_score: number | null;
 };
 
+type TraitorVote = {
+  team: string;
+  suspect_name: string;
+  is_correct: boolean;
+  points: number;
+};
+
 const correctDrinks = {
   drink_1: "Öl",
   drink_2: "Sockerfri läsk",
@@ -48,6 +55,8 @@ export default function AdminPage() {
   const [quizAnswers, setQuizAnswers] = useState<QuizAnswer[]>([]);
   const [drinkAnswers, setDrinkAnswers] = useState<DrinkAnswer[]>([]);
   const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
+  const [traitorVotes, setTraitorVotes] = useState<TraitorVote[]>([]);
+  const [traitorsActive, setTraitorsActive] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("admin-access");
@@ -70,9 +79,7 @@ export default function AdminPage() {
   }, [isAuthenticated]);
 
   async function loadData() {
-    const { data: quizData } = await supabase
-      .from("quiz_answers")
-      .select("*");
+    const { data: quizData } = await supabase.from("quiz_answers").select("*");
 
     const { data: drinkData } = await supabase
       .from("drink_answers")
@@ -83,9 +90,32 @@ export default function AdminPage() {
       .select("*")
       .order("team");
 
+    const { data: traitorData } = await supabase
+      .from("traitor_votes")
+      .select("*");
+
+    const { data: settingData } = await supabase
+      .from("game_settings")
+      .select("value")
+      .eq("key", "traitors_active")
+      .single();
+
     if (quizData) setQuizAnswers(quizData);
     if (drinkData) setDrinkAnswers(drinkData);
     if (photoData) setPhotos(photoData);
+    if (traitorData) setTraitorVotes(traitorData);
+    if (settingData) setTraitorsActive(settingData.value === "true");
+  }
+
+  async function toggleTraitors() {
+    const newValue = !traitorsActive;
+
+    await supabase
+      .from("game_settings")
+      .update({ value: newValue ? "true" : "false" })
+      .eq("key", "traitors_active");
+
+    setTraitorsActive(newValue);
   }
 
   async function setPhotoScore(id: number, score: number) {
@@ -105,6 +135,12 @@ export default function AdminPage() {
     await supabase.from("quiz_answers").delete().neq("team", "");
     await supabase.from("drink_answers").delete().neq("team", "");
     await supabase.from("photo_submissions").delete().neq("team", "");
+    await supabase.from("traitor_votes").delete().neq("team", "");
+
+    await supabase
+      .from("game_settings")
+      .update({ value: "false" })
+      .eq("key", "traitors_active");
 
     localStorage.removeItem("team-access-gul");
     localStorage.removeItem("team-access-bla");
@@ -114,6 +150,8 @@ export default function AdminPage() {
     setQuizAnswers([]);
     setDrinkAnswers([]);
     setPhotos([]);
+    setTraitorVotes([]);
+    setTraitorsActive(false);
   }
 
   function login() {
@@ -154,6 +192,11 @@ export default function AdminPage() {
     return photo?.photo_score || 0;
   }
 
+  function getTraitorScore(team: string) {
+    const vote = traitorVotes.find((v) => v.team === team);
+    return vote?.points || 0;
+  }
+
   if (!hasCheckedAuth) {
     return null;
   }
@@ -190,13 +233,15 @@ export default function AdminPage() {
       const quiz = getQuizScore(team.team);
       const drinks = getDrinkScore(team.team);
       const photo = getPhotoScore(team.team);
+      const traitors = getTraitorScore(team.team);
 
       return {
         ...team,
         quiz,
         drinks,
         photo,
-        total: quiz + drinks + photo,
+        traitors,
+        total: quiz + drinks + photo + traitors,
       };
     })
     .sort((a, b) => b.total - a.total);
@@ -211,46 +256,72 @@ export default function AdminPage() {
         </h1>
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
-          <h2 className="text-3xl font-black mb-6">
-            🎭 Showläge
-          </h2>
+          <h2 className="text-3xl font-black mb-6">🎭 Showläge</h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <a
-              href="/final"
-              className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
-            >
-              🎉 Final
-            </a>
+  <a
+    href="/final"
+    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+  >
+    🎉 Final
+  </a>
 
-            <a
-              href="/photo-wall"
-              className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
-            >
-              📸 Photo Wall
-            </a>
+  <a
+    href="/photo-wall"
+    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+  >
+    📸 Photo Wall
+  </a>
 
-            <a
-              href="/quiz-reveal"
-              className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
-            >
-              🧠 Quiz Reveal
-            </a>
+  <a
+    href="/quiz-reveal"
+    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+  >
+    🧠 Quiz Reveal
+  </a>
 
-            <a
-              href="/drink-reveal"
-              className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
-            >
-              🍹 Drink Reveal
-            </a>
-          </div>
+  <a
+    href="/drink-reveal"
+    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+  >
+    🍹 Drink Reveal
+  </a>
+
+  <a
+    href="/traitors-reveal"
+    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+  >
+    🕵️ Traitors Reveal
+  </a>
+</div>
+        </section>
+
+        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
+          <h2 className="text-3xl font-black mb-4">
+            🕵️ The Traitors
+          </h2>
+
+          <p className="text-gray-400 mb-5">
+            Momentet är {traitorsActive ? "aktivt" : "dolt"} för lagen.
+          </p>
+
+          <button
+            onClick={toggleTraitors}
+            className={`w-full p-5 rounded-3xl font-black text-xl ${
+              traitorsActive
+                ? "bg-red-500 text-white"
+                : "bg-yellow-400 text-black"
+            }`}
+          >
+            {traitorsActive
+              ? "🕵️ Dölj The Traitors"
+              : "🕵️ Aktivera The Traitors"}
+          </button>
         </section>
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-black">
-              📸 Bedöm lagbilder
-            </h2>
+            <h2 className="text-3xl font-black">📸 Bedöm lagbilder</h2>
 
             <button
               onClick={loadData}
@@ -261,9 +332,7 @@ export default function AdminPage() {
           </div>
 
           {photos.length === 0 ? (
-            <p className="text-gray-400">
-              Inga lagbilder uppladdade ännu.
-            </p>
+            <p className="text-gray-400">Inga lagbilder uppladdade ännu.</p>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
               {photos.map((photo) => (
@@ -315,35 +384,28 @@ export default function AdminPage() {
         </section>
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
-          <h2 className="text-3xl font-black mb-6">
-            🏆 Totalställning
-          </h2>
+          <h2 className="text-3xl font-black mb-6">🏆 Totalställning</h2>
 
           <div className="grid gap-4">
             {leaderboard.map((team, index) => (
               <div
                 key={team.team}
                 className={`rounded-3xl p-5 flex items-center justify-between ${
-                  index === 0
-                    ? `${team.color}`
-                    : "bg-zinc-800 text-white"
+                  index === 0 ? `${team.color}` : "bg-zinc-800 text-white"
                 }`}
               >
                 <div>
-                  <p className="text-3xl font-black">
-                    {team.name}
-                  </p>
+                  <p className="text-3xl font-black">{team.name}</p>
 
-                  <div className="flex gap-4 mt-2 text-sm opacity-80">
+                  <div className="flex flex-wrap gap-4 mt-2 text-sm opacity-80">
                     <span>🧠 Quiz: {team.quiz}</span>
                     <span>🍹 Dryck: {team.drinks}</span>
                     <span>📸 Bild: {team.photo}</span>
+                    <span>🕵️ Förrädare: {team.traitors}</span>
                   </div>
                 </div>
 
-                <div className="text-5xl font-black">
-                  {team.total}
-                </div>
+                <div className="text-5xl font-black">{team.total}</div>
               </div>
             ))}
           </div>

@@ -22,17 +22,18 @@ export default function TeamPage() {
   const [quizDone, setQuizDone] = useState(false);
   const [drinksDone, setDrinksDone] = useState(false);
   const [photoDone, setPhotoDone] = useState(false);
+  const [traitorsActive, setTraitorsActive] = useState(false);
+  const [traitorsDone, setTraitorsDone] = useState(false);
 
   async function loadStatus() {
     const { data: quizData } = await supabase
       .from("quiz_answers")
       .select("question_id")
-      .eq("team", team)
-    
+      .eq("team", team);
 
     const { data: drinkData } = await supabase
       .from("drink_answers")
-      .select("question_id")
+      .select("id")
       .eq("team", team)
       .limit(1);
 
@@ -40,19 +41,37 @@ export default function TeamPage() {
       .from("photo_submissions")
       .select("id")
       .eq("team", team)
-    .limit(1);
+      .limit(1);
+
+    const { data: settingData } = await supabase
+      .from("game_settings")
+      .select("value")
+      .eq("key", "traitors_active")
+      .maybeSingle();
+
+    const { data: traitorVoteData } = await supabase
+      .from("traitor_votes")
+      .select("id")
+      .eq("team", team)
+      .limit(1);
 
     setQuizDone(
-  Boolean(
-    quizData &&
-      new Set(quizData.map((answer) => answer.question_id)).size >= questions.length
-  )
-);
+      Boolean(
+        quizData &&
+          new Set(quizData.map((answer) => answer.question_id)).size >=
+            questions.length
+      )
+    );
+
     setDrinksDone(Boolean(drinkData && drinkData.length > 0));
     setPhotoDone(Boolean(photoData && photoData.length > 0));
+    setTraitorsActive(settingData?.value === "true");
+    setTraitorsDone(Boolean(traitorVoteData && traitorVoteData.length > 0));
   }
 
   useEffect(() => {
+    if (!team) return;
+
     loadStatus();
 
     const interval = setInterval(() => {
@@ -60,7 +79,7 @@ export default function TeamPage() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [team]);
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
@@ -100,9 +119,20 @@ export default function TeamPage() {
               ? "✅ Gruppbild klar"
               : "Moment 3: Gruppbild"}
           </Link>
+
+          {traitorsActive && (
+            <Link
+              href={`/team/${team}/traitors`}
+              className="bg-purple-600 p-5 rounded-2xl font-bold text-xl text-center hover:scale-105 transition"
+            >
+              {traitorsDone
+                ? "✅ The Traitors klart"
+                : "🕵️ Moment 4: The Traitors"}
+            </Link>
+          )}
         </div>
 
-        {quizDone && drinksDone && photoDone && (
+        {quizDone && drinksDone && photoDone && !traitorsActive && (
           <div className="mt-8 bg-yellow-400 text-black p-6 rounded-3xl text-center animate-pulse">
             <p className="text-4xl mb-3">🥂</p>
 
@@ -112,6 +142,20 @@ export default function TeamPage() {
 
             <p className="font-bold text-lg">
               Nu kan ni gå till baren och fylla på glasen 🍷🌴
+            </p>
+          </div>
+        )}
+
+        {quizDone && drinksDone && photoDone && traitorsActive && traitorsDone && (
+          <div className="mt-8 bg-yellow-400 text-black p-6 rounded-3xl text-center animate-pulse">
+            <p className="text-4xl mb-3">🕵️</p>
+
+            <h2 className="text-2xl font-black mb-3">
+              Alla moment klara!
+            </h2>
+
+            <p className="font-bold text-lg">
+              Resultatet avslöjas vid prisutdelningen 🏆
             </p>
           </div>
         )}
