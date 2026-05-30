@@ -28,38 +28,64 @@ const correctDrinks = {
   drink_4: "Läsk med socker",
 };
 
+type QuizAnswer = {
+  team: string;
+  question_id: number;
+  answer: string;
+};
+
+type DrinkAnswer = {
+  team: string;
+  drink_1: string;
+  drink_2: string;
+  drink_3: string;
+  drink_4: string;
+};
+
+type PhotoSubmission = {
+  team: string;
+  photo_score: number | null;
+};
+
+type TraitorVote = {
+  team: string;
+  points: number;
+};
+
+type LeaderboardRow = {
+  team: string;
+  total: number;
+};
+
 export default function FinalPage() {
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<QuizAnswer[]>([]);
+  const [drinkAnswers, setDrinkAnswers] = useState<DrinkAnswer[]>([]);
+  const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
+  const [traitorVotes, setTraitorVotes] = useState<TraitorVote[]>([]);
 
   async function loadData() {
-    const { data: quizAnswers } = await supabase
-      .from("quiz_answers")
-      .select("*");
+    const { data: quizData } = await supabase.from("quiz_answers").select("*");
+    const { data: drinkData } = await supabase.from("drink_answers").select("*");
+    const { data: photoData } = await supabase.from("photo_submissions").select("*");
+    const { data: traitorData } = await supabase.from("traitor_votes").select("*");
 
-    const { data: drinkAnswers } = await supabase
-      .from("drink_answers")
-      .select("*");
-
-    const { data: photos } = await supabase
-      .from("photo_submissions")
-      .select("*");
+    if (quizData) setQuizAnswers(quizData);
+    if (drinkData) setDrinkAnswers(drinkData);
+    if (photoData) setPhotos(photoData);
+    if (traitorData) setTraitorVotes(traitorData);
 
     function getQuizScore(team: string) {
-      return (
-        quizAnswers
-          ?.filter((a) => a.team === team)
-          .filter((a) => {
-            const question = questions.find(
-              (q) => q.id === a.question_id
-            );
-
-            return question?.correctAnswer === a.answer;
-          }).length || 0
-      );
+      return (quizData || [])
+        .filter((answer) => answer.team === team)
+        .filter((answer) => {
+          const question = questions.find((q) => q.id === answer.question_id);
+          return question?.correctAnswer === answer.answer;
+        }).length;
     }
 
     function getDrinkScore(team: string) {
-      const drinks = drinkAnswers?.find((d) => d.team === team);
+      const drinks = (drinkData || []).find((d) => d.team === team);
 
       if (!drinks) return 0;
 
@@ -74,9 +100,13 @@ export default function FinalPage() {
     }
 
     function getPhotoScore(team: string) {
-      const photo = photos?.find((p) => p.team === team);
-
+      const photo = (photoData || []).find((p) => p.team === team);
       return photo?.photo_score || 0;
+    }
+
+    function getTraitorScore(team: string) {
+      const vote = (traitorData || []).find((v) => v.team === team);
+      return vote?.points || 0;
     }
 
     const results = teams
@@ -85,7 +115,8 @@ export default function FinalPage() {
         total:
           getQuizScore(team) +
           getDrinkScore(team) +
-          getPhotoScore(team),
+          getPhotoScore(team) +
+          getTraitorScore(team),
       }))
       .sort((a, b) => b.total - a.total);
 
@@ -99,73 +130,69 @@ export default function FinalPage() {
 
     return () => clearInterval(interval);
   }, []);
-  
 
   const winner = leaderboard[0];
   const rest = leaderboard.slice(1);
 
- 
-
   return (
     <main className="min-h-screen bg-black text-white p-6 overflow-hidden">
-      
+      <a
+        href="/admin"
+        className="fixed top-4 left-4 z-50 bg-zinc-800 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all"
+      >
+        ←
+      </a>
+
+      <button
+        onClick={() => {
+          const audio = new Audio("/sounds/winner.mp3");
+          audio.volume = 0.7;
+          audio.play();
+        }}
+        className="fixed top-4 right-4 z-50 bg-yellow-400 text-black w-12 h-12 rounded-full font-black text-xl shadow-2xl hover:scale-110 transition-all"
+      >
+        🔊
+      </button>
 
       <div className="max-w-2xl mx-auto pt-8 relative z-10">
         <RivieraHeader />
-        <a
-  href="/admin"
-  className="fixed top-4 left-4 z-50 bg-zinc-800 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all"
->
-  ←
-</a>
 
         <h1 className="text-5xl font-black text-center mt-10">
           FINALRESULTAT
         </h1>
-        <button
-  onClick={() => {
-    const audio = new Audio("/sounds/winner.mp3");
-    audio.volume = 0.7;
-    audio.play();
-  }}
-  className="fixed top-4 right-4 z-50 bg-yellow-400 text-black w-12 h-12 rounded-full font-black text-xl shadow-2xl hover:scale-110 transition-all"
->
-  🔊
-</button>
 
-        
         {winner && (
           <section
             className={`${teamColors[winner.team]} p-8 rounded-[2rem] text-center mt-10 mb-8 shadow-2xl`}
           >
-            <p className="text-6xl mb-3">🏆</p>
+            <p className="text-6xl mb-4">🏆</p>
 
-            <p className="uppercase font-black tracking-widest text-sm">
+            <p className="uppercase font-black tracking-wide">
               Vinnare
             </p>
 
-            <h2 className="text-5xl font-black uppercase mt-2">
-              Lag {teamNames[winner.team]}
+            <h2 className="text-5xl font-black mt-3">
+              LAG {teamNames[winner.team].toUpperCase()}
             </h2>
 
-            <p className="text-5xl font-black mt-4">
+            <p className="text-5xl font-black mt-6">
               {winner.total} p
             </p>
           </section>
         )}
 
-        <div className="grid gap-3 mt-8 max-w-md mx-auto">
+        <div className="grid gap-4">
           {rest.map((row, index) => (
             <div
               key={row.team}
-              className="bg-zinc-900 p-4 rounded-2xl flex justify-between items-center"
+              className="bg-zinc-900 p-5 rounded-2xl flex justify-between items-center"
             >
-              <span className="text-xl font-bold uppercase">
+              <span className="text-2xl font-black uppercase">
                 {index + 2}. Lag {teamNames[row.team]}
               </span>
 
               <span
-                className={`${teamColors[row.team]} px-4 py-2 rounded-xl font-bold`}
+                className={`${teamColors[row.team]} px-4 py-3 rounded-xl font-black text-xl`}
               >
                 {row.total} p
               </span>
