@@ -258,41 +258,50 @@ export default function AdminPage() {
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
           <h2 className="text-3xl font-black mb-6">🎭 Showläge</h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-  <a
-    href="/final"
-    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
-  >
-    🎉 Final
-  </a>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
 
   <a
     href="/photo-wall"
-    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+    className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
   >
     📸 Photo Wall
   </a>
 
   <a
     href="/quiz-reveal"
-    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+    className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
   >
     🧠 Quiz Reveal
   </a>
 
   <a
     href="/drink-reveal"
-    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+    className="bg-green-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
   >
     🍹 Drink Reveal
   </a>
 
   <a
-    href="/traitors-reveal"
-    className="bg-yellow-400 text-black px-4 py-4 rounded-2xl font-black text-center"
+    href="/pre-traitors"
+    className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
   >
-    🕵️ Traitors Reveal
+    🏆 Före Traitors
   </a>
+
+  <a
+    href="/traitors-reveal"
+    className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+  >
+    🕵️ The Traitors Reveal
+  </a>
+
+  <a
+    href="/final"
+    className="bg-yellow-500 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+  >
+    🎉 Final
+  </a>
+
 </div>
         </section>
 

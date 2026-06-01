@@ -28,6 +28,9 @@ const teamColors: Record<string, string> = {
 
 export default function TraitorsRevealPage() {
   const [votes, setVotes] = useState<TraitorVote[]>([]);
+  const [revealedTeams, setRevealedTeams] = useState<Record<string, boolean>>(
+    {}
+  );
 
   async function loadVotes() {
     const { data } = await supabase.from("traitor_votes").select("*");
@@ -42,6 +45,13 @@ export default function TraitorsRevealPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  function revealTeam(team: string) {
+    setRevealedTeams((current) => ({
+      ...current,
+      [team]: true,
+    }));
+  }
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
@@ -63,10 +73,11 @@ export default function TraitorsRevealPage() {
           Vilka lag hittade sin förrädare?
         </p>
 
-        <div className="grid gap-6">
+        <div className="grid gap-8">
           {Object.keys(teamNames).map((team) => {
             const vote = votes.find((v) => v.team === team);
             const correctTraitor = traitors[team];
+            const isRevealed = revealedTeams[team];
             const isCorrect = vote?.suspect_name === correctTraitor;
 
             return (
@@ -89,32 +100,45 @@ export default function TraitorsRevealPage() {
                     </p>
                   </div>
                 ) : (
-                  <div
-                    className={`rounded-3xl p-8 text-center ${
-                      isCorrect
-                        ? "bg-green-500 text-black"
-                        : "bg-red-500 text-white"
-                    }`}
-                  >
-                    <p className="text-lg font-bold uppercase mb-2">
-                      Laget valde
+                  <div className="bg-zinc-800 rounded-3xl p-8 text-center">
+                    <p className="text-lg font-bold uppercase text-gray-400 mb-2">
+                      Laget misstänkte
                     </p>
 
-                    <p className="text-5xl font-black mb-8">
+                    <p className="text-6xl font-black mb-8 text-yellow-400">
                       {vote.suspect_name}
                     </p>
 
-                    <p className="text-lg font-bold uppercase mb-2">
-                      Förrädaren var
-                    </p>
+                    {!isRevealed ? (
+                      <button
+                        onClick={() => revealTeam(team)}
+                        className="bg-yellow-400 text-black px-8 py-5 rounded-3xl font-black text-2xl hover:scale-105 transition-all"
+                      >
+                        🕵️ Avslöja förrädaren
+                      </button>
+                    ) : (
+                      <div
+                        className={`rounded-3xl p-8 ${
+                          isCorrect
+                            ? "bg-green-500 text-black"
+                            : "bg-red-500 text-white"
+                        }`}
+                      >
+                        <p className="text-lg font-bold uppercase mb-2">
+                          Den riktiga förrädaren var
+                        </p>
 
-                    <p className="text-5xl font-black mb-8">
-                      {correctTraitor}
-                    </p>
+                        <p className="text-6xl font-black mb-8">
+                          {correctTraitor}
+                        </p>
 
-                    <p className="text-4xl font-black">
-                      {isCorrect ? "✅ RÄTT — +5 POÄNG" : "❌ FEL — 0 POÄNG"}
-                    </p>
+                        <p className="text-4xl font-black">
+                          {isCorrect
+                            ? "✅ RÄTT — +5 POÄNG"
+                            : "❌ FEL — 0 POÄNG"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </section>
