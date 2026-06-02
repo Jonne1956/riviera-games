@@ -111,7 +111,7 @@ export const questions = [
 },
 {
   id: 12,
-  text: "På ett möte i Brasilien hos Scania skulle Lasse avsluta. Men en brasse stoppade honom i sista stund. Varför?",
+  text: "På ett jobbmöte i Brasilien hos Scania skulle Lasse avsluta. Men en brasse stoppade honom i sista stund. Varför?",
   options: [
     "1 — Lasse gjorde nästan OK-tecknet och det är inte okej i Sydamerika",
     "X — Lasse hade precis nyst och hade snor på kinden",

@@ -7,11 +7,11 @@ import { questions } from "@/app/data/quizQuestions";
 
 const teams = ["gul", "bla", "gron", "rod"];
 
-const teamNames: Record<string, string> = {
-  gul: "Gul",
-  bla: "Blå",
-  gron: "Grön",
-  rod: "Röd",
+const fallbackTeamNames: Record<string, TeamDisplayName> = {
+  gul: { team: "gul", display_name: "Lag Gul", icon: "⛷️" },
+  bla: { team: "bla", display_name: "Lag Blå", icon: "🔨" },
+  gron: { team: "gron", display_name: "Lag Grön", icon: "🍺" },
+  rod: { team: "rod", display_name: "Lag Röd", icon: "⛳" },
 };
 
 const teamColors: Record<string, string> = {
@@ -52,6 +52,12 @@ type TraitorVote = {
   points: number;
 };
 
+type TeamDisplayName = {
+  team: string;
+  display_name: string;
+  icon: string;
+};
+
 type LeaderboardRow = {
   team: string;
   total: number;
@@ -59,10 +65,7 @@ type LeaderboardRow = {
 
 export default function FinalPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
-  const [quizAnswers, setQuizAnswers] = useState<QuizAnswer[]>([]);
-  const [drinkAnswers, setDrinkAnswers] = useState<DrinkAnswer[]>([]);
-  const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
-  const [traitorVotes, setTraitorVotes] = useState<TraitorVote[]>([]);
+  const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
 
   async function loadData() {
     const { data: quizData } = await supabase.from("quiz_answers").select("*");
@@ -70,10 +73,11 @@ export default function FinalPage() {
     const { data: photoData } = await supabase.from("photo_submissions").select("*");
     const { data: traitorData } = await supabase.from("traitor_votes").select("*");
 
-    if (quizData) setQuizAnswers(quizData);
-    if (drinkData) setDrinkAnswers(drinkData);
-    if (photoData) setPhotos(photoData);
-    if (traitorData) setTraitorVotes(traitorData);
+    const { data: teamNameData } = await supabase
+      .from("team_display_names")
+      .select("*");
+
+    if (teamNameData) setTeamDisplayNames(teamNameData);
 
     function getQuizScore(team: string) {
       return (quizData || [])
@@ -131,6 +135,13 @@ export default function FinalPage() {
     return () => clearInterval(interval);
   }, []);
 
+  function getTeamDisplay(team: string) {
+    return (
+      teamDisplayNames.find((row) => row.team === team) ||
+      fallbackTeamNames[team]
+    );
+  }
+
   const winner = leaderboard[0];
   const rest = leaderboard.slice(1);
 
@@ -167,13 +178,21 @@ export default function FinalPage() {
           >
             <p className="text-6xl mb-4">🏆</p>
 
+            <p className="text-7xl mb-4">
+              {getTeamDisplay(winner.team).icon}
+            </p>
+
             <p className="uppercase font-black tracking-wide">
               Vinnare
             </p>
 
             <h2 className="text-5xl font-black mt-3">
-              LAG {teamNames[winner.team].toUpperCase()}
+              {getTeamDisplay(winner.team).display_name}
             </h2>
+
+            <p className="font-bold opacity-80 mt-2">
+              {fallbackTeamNames[winner.team].display_name}
+            </p>
 
             <p className="text-5xl font-black mt-6">
               {winner.total} p
@@ -182,22 +201,32 @@ export default function FinalPage() {
         )}
 
         <div className="grid gap-4">
-          {rest.map((row, index) => (
-            <div
-              key={row.team}
-              className="bg-zinc-900 p-5 rounded-2xl flex justify-between items-center"
-            >
-              <span className="text-2xl font-black uppercase">
-                {index + 2}. Lag {teamNames[row.team]}
-              </span>
+          {rest.map((row, index) => {
+            const display = getTeamDisplay(row.team);
 
-              <span
-                className={`${teamColors[row.team]} px-4 py-3 rounded-xl font-black text-xl`}
+            return (
+              <div
+                key={row.team}
+                className="bg-zinc-900 p-5 rounded-2xl flex justify-between items-center"
               >
-                {row.total} p
-              </span>
-            </div>
-          ))}
+                <div>
+                  <p className="text-2xl font-black uppercase">
+                    {index + 2}. {display.icon} {display.display_name}
+                  </p>
+
+                  <p className="text-gray-500 font-bold mt-1">
+                    {fallbackTeamNames[row.team].display_name}
+                  </p>
+                </div>
+
+                <span
+                  className={`${teamColors[row.team]} px-4 py-3 rounded-xl font-black text-xl`}
+                >
+                  {row.total} p
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </main>

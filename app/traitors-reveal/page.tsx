@@ -12,11 +12,17 @@ type TraitorVote = {
   points: number;
 };
 
-const teamNames: Record<string, string> = {
-  gul: "Lag Gul",
-  bla: "Lag Blå",
-  gron: "Lag Grön",
-  rod: "Lag Röd",
+type TeamDisplayName = {
+  team: string;
+  display_name: string;
+  icon: string;
+};
+
+const fallbackTeamNames: Record<string, TeamDisplayName> = {
+  gul: { team: "gul", display_name: "Lag Gul", icon: "⛷️" },
+  bla: { team: "bla", display_name: "Lag Blå", icon: "🔨" },
+  gron: { team: "gron", display_name: "Lag Grön", icon: "🍺" },
+  rod: { team: "rod", display_name: "Lag Röd", icon: "⛳" },
 };
 
 const teamColors: Record<string, string> = {
@@ -28,14 +34,20 @@ const teamColors: Record<string, string> = {
 
 export default function TraitorsRevealPage() {
   const [votes, setVotes] = useState<TraitorVote[]>([]);
+  const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
   const [revealedTeams, setRevealedTeams] = useState<Record<string, boolean>>(
     {}
   );
 
   async function loadVotes() {
-    const { data } = await supabase.from("traitor_votes").select("*");
+    const { data: voteData } = await supabase.from("traitor_votes").select("*");
 
-    if (data) setVotes(data);
+    const { data: teamNameData } = await supabase
+      .from("team_display_names")
+      .select("*");
+
+    if (voteData) setVotes(voteData);
+    if (teamNameData) setTeamDisplayNames(teamNameData);
   }
 
   useEffect(() => {
@@ -45,6 +57,13 @@ export default function TraitorsRevealPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  function getTeamDisplay(team: string) {
+    return (
+      teamDisplayNames.find((row) => row.team === team) ||
+      fallbackTeamNames[team]
+    );
+  }
 
   function revealTeam(team: string) {
     setRevealedTeams((current) => ({
@@ -74,11 +93,12 @@ export default function TraitorsRevealPage() {
         </p>
 
         <div className="grid gap-8">
-          {Object.keys(teamNames).map((team) => {
+          {Object.keys(fallbackTeamNames).map((team) => {
             const vote = votes.find((v) => v.team === team);
             const correctTraitor = traitors[team];
             const isRevealed = revealedTeams[team];
             const isCorrect = vote?.suspect_name === correctTraitor;
+            const display = getTeamDisplay(team);
 
             return (
               <section
@@ -89,8 +109,12 @@ export default function TraitorsRevealPage() {
                   className={`${teamColors[team]} rounded-2xl px-5 py-3 inline-block mb-6`}
                 >
                   <h2 className="text-3xl font-black uppercase">
-                    {teamNames[team]}
+                    {display.icon} {display.display_name}
                   </h2>
+
+                  <p className="font-bold opacity-80 mt-1">
+                    {fallbackTeamNames[team].display_name}
+                  </p>
                 </div>
 
                 {!vote ? (

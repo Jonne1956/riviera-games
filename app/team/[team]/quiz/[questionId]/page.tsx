@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import RivieraHeader from "@/app/components/RivieraHeader";
 import { questions } from "@/app/data/quizQuestions";
 
 export default function QuizQuestionPage() {
@@ -13,123 +11,108 @@ export default function QuizQuestionPage() {
 
   const team = params.team as string;
   const questionId = Number(params.questionId);
-
   const question = questions.find((q) => q.id === questionId);
 
   const [selectedAnswer, setSelectedAnswer] = useState("");
-  const [alreadyAnswered, setAlreadyAnswered] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [savedAnswer, setSavedAnswer] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    async function checkExistingAnswer() {
+    async function loadAnswer() {
       const { data } = await supabase
         .from("quiz_answers")
-        .select("id")
+        .select("answer")
         .eq("team", team)
         .eq("question_id", questionId)
         .limit(1);
 
-      setAlreadyAnswered(Boolean(data && data.length > 0));
+      if (data && data.length > 0) {
+        setSavedAnswer(data[0].answer);
+        setSelectedAnswer(data[0].answer);
+      }
     }
 
-    checkExistingAnswer();
+    loadAnswer();
   }, [team, questionId]);
 
-  if (!question) {
-    return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center p-6">
-        <p>Frågan hittades inte.</p>
-      </main>
-    );
-  }
-
   async function submitAnswer() {
-    const answerToSave = selectedAnswer.charAt(0);
+    if (!selectedAnswer || savedAnswer) return;
+
+    setSaving(true);
 
     const { error } = await supabase.from("quiz_answers").insert({
       team,
-      question_id: question?.id,
-      answer: answerToSave,
+      question_id: questionId,
+      answer: selectedAnswer,
     });
 
+    setSaving(false);
+
     if (error) {
-      alert("Det gick inte att spara svaret. Frågan kan redan vara besvarad.");
+      alert("Det gick inte att spara svaret.");
       return;
     }
 
-    router.push(`/team/${team}/quiz`);
+    setSavedAnswer(selectedAnswer);
+
+    setTimeout(() => {
+      router.push(`/team/${team}/quiz`);
+    }, 800);
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-md mx-auto pt-6">
-        <RivieraHeader />
-
-        <p className="text-yellow-400 font-bold text-center uppercase tracking-wide mt-8">
-          Fråga {question.id}
-        </p>
-
-        <h1 className="text-2xl font-bold text-center mt-4 mb-8">
-          {question.text}
+    <main className="min-h-screen bg-black text-white p-6 flex items-center justify-center">
+      <div className="w-full max-w-md">
+        <h1 className="text-5xl font-black text-center text-yellow-400 mb-4">
+          Fråga {questionId}
         </h1>
 
-        {alreadyAnswered ? (
-          <div className="bg-green-500 text-black p-6 rounded-3xl text-center">
-            <h2 className="text-2xl font-black mb-2">
-              Frågan är redan besvarad ✅
-            </h2>
+        <h2 className="text-3xl font-black text-center mb-8">
+          {question?.text}
+        </h2>
 
-            <Link
-              href={`/team/${team}/quiz`}
-              className="block mt-4 font-bold underline"
-            >
-              Tillbaka till frågelistan
-            </Link>
+        <div className="grid gap-4">
+          {["1", "X", "2"].map((answer) => {
+            const active = selectedAnswer === answer;
+
+            return (
+              <button
+                key={answer}
+                onClick={() => !savedAnswer && setSelectedAnswer(answer)}
+                disabled={Boolean(savedAnswer)}
+                className={`p-6 rounded-3xl font-black text-4xl transition-all ${
+                  active
+                    ? "bg-green-500 text-black scale-105"
+                    : "bg-yellow-400 text-black"
+                }`}
+              >
+                {answer}
+              </button>
+            );
+          })}
+        </div>
+
+        {savedAnswer ? (
+          <div className="mt-8 bg-green-500 text-black p-5 rounded-3xl text-center">
+            <p className="text-2xl font-black">✅ Svar sparat</p>
+            <p className="font-bold mt-2">Ni svarade: {savedAnswer}</p>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {question.options.map((option) => (
-              <button
-                key={option}
-                onClick={() => {
-                  setSelectedAnswer(option);
-                  setShowConfirm(true);
-                }}
-                className="bg-zinc-800 border border-zinc-700 p-4 rounded-2xl text-xl font-bold hover:bg-zinc-700 active:scale-95 transition"
-              >
-                {option}
-              </button>
-            ))}
-
-            {showConfirm && (
-              <div className="mt-4 bg-yellow-400 text-black p-5 rounded-2xl">
-                <p className="font-bold text-xl mb-2">
-                  Är ni säkra?
-                </p>
-
-                <p className="mb-4">
-                  Ni har valt <strong>{selectedAnswer}</strong>. Svaret kan inte ändras.
-                </p>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={submitAnswer}
-                    className="bg-black text-white px-4 py-4 rounded-xl font-bold"
-                  >
-                    Skicka
-                  </button>
-
-                  <button
-                    onClick={() => setShowConfirm(false)}
-                    className="bg-white text-black px-4 py-4 rounded-xl font-bold"
-                  >
-                    Ändra
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={submitAnswer}
+            disabled={!selectedAnswer || saving}
+            className="w-full mt-8 bg-yellow-400 text-black p-5 rounded-3xl font-black text-xl disabled:opacity-40"
+          >
+            {saving ? "Sparar..." : "Skicka svar"}
+          </button>
         )}
+
+        <button
+          onClick={() => router.push(`/team/${team}/quiz`)}
+          className="w-full mt-4 bg-zinc-800 text-white p-4 rounded-2xl font-bold"
+        >
+          Tillbaka till frågelistan
+        </button>
       </div>
     </main>
   );

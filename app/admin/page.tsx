@@ -33,6 +33,12 @@ type TraitorVote = {
   points: number;
 };
 
+type TeamDisplayName = {
+  team: string;
+  display_name: string;
+  icon: string;
+};
+
 const correctDrinks = {
   drink_1: "Öl",
   drink_2: "Sockerfri läsk",
@@ -57,6 +63,7 @@ export default function AdminPage() {
   const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
   const [traitorVotes, setTraitorVotes] = useState<TraitorVote[]>([]);
   const [traitorsActive, setTraitorsActive] = useState(false);
+  const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("admin-access");
@@ -97,10 +104,16 @@ export default function AdminPage() {
       .eq("key", "traitors_active")
       .maybeSingle();
 
+    const { data: teamNameData } = await supabase
+      .from("team_display_names")
+      .select("*");
+
     if (quizData) setQuizAnswers(quizData);
     if (drinkData) setDrinkAnswers(drinkData);
     if (photoData) setPhotos(photoData);
     if (traitorData) setTraitorVotes(traitorData);
+    if (teamNameData) setTeamDisplayNames(teamNameData);
+
     setTraitorsActive(settingData?.value === "true");
   }
 
@@ -233,6 +246,17 @@ export default function AdminPage() {
     return vote?.points || 0;
   }
 
+  function getTeamDisplay(team: string) {
+    const custom = teamDisplayNames.find((row) => row.team === team);
+    const base = teamInfo.find((row) => row.team === team);
+
+    return {
+      displayName: custom?.display_name || base?.name || team,
+      icon: custom?.icon || "",
+      baseName: base?.name || team,
+    };
+  }
+
   if (!hasCheckedAuth) return null;
 
   if (!isAuthenticated) {
@@ -308,50 +332,60 @@ export default function AdminPage() {
             </p>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
-              {photos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className="bg-zinc-800 rounded-3xl overflow-hidden"
-                >
-                  <img
-                    src={photo.image_url}
-                    alt={photo.team}
-                    className="w-full h-80 object-cover"
-                  />
+              {photos.map((photo) => {
+                const display = getTeamDisplay(photo.team);
 
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-3xl font-black uppercase">
-                        Lag {photo.team}
-                      </p>
+                return (
+                  <div
+                    key={photo.id}
+                    className="bg-zinc-800 rounded-3xl overflow-hidden"
+                  >
+                    <img
+                      src={photo.image_url}
+                      alt={display.displayName}
+                      className="w-full h-80 object-cover"
+                    />
 
-                      <p className="text-yellow-400 font-black text-xl">
-                        {photo.photo_score ?? 0} p
-                      </p>
-                    </div>
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-3xl font-black uppercase">
+                            {display.icon} {display.displayName}
+                          </p>
 
-                    <div className="grid grid-cols-4 gap-2">
-                      {[1, 2, 3, 4].map((score) => {
-                        const active = photo.photo_score === score;
+                          <p className="text-gray-400 font-bold mt-1">
+                            {display.baseName}
+                          </p>
+                        </div>
 
-                        return (
-                          <button
-                            key={score}
-                            onClick={() => setPhotoScore(photo.id, score)}
-                            className={`p-4 rounded-2xl font-black text-xl transition-all ${
-                              active
-                                ? "bg-green-500 text-black scale-105"
-                                : "bg-zinc-700 text-white hover:bg-zinc-600"
-                            }`}
-                          >
-                            {score}
-                          </button>
-                        );
-                      })}
+                        <p className="text-yellow-400 font-black text-xl">
+                          {photo.photo_score ?? 0} p
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2">
+                        {[1, 2, 3, 4].map((score) => {
+                          const active = photo.photo_score === score;
+
+                          return (
+                            <button
+                              key={score}
+                              onClick={() => setPhotoScore(photo.id, score)}
+                              className={`p-4 rounded-2xl font-black text-xl transition-all ${
+                                active
+                                  ? "bg-green-500 text-black scale-105"
+                                  : "bg-zinc-700 text-white hover:bg-zinc-600"
+                              }`}
+                            >
+                              {score}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -360,27 +394,52 @@ export default function AdminPage() {
           <h2 className="text-3xl font-black mb-6">🎭 Showläge</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="/photo-wall" className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
+            <a
+              href="/team-names"
+              className="bg-zinc-700 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+            >
+              🏷️ Lagnamn
+            </a>
+
+            <a
+              href="/photo-wall"
+              className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+            >
               📸 Photo Wall
             </a>
 
-            <a href="/quiz-reveal" className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
+            <a
+              href="/quiz-reveal"
+              className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+            >
               🧠 Quiz Reveal
             </a>
 
-            <a href="/drink-reveal" className="bg-green-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
+            <a
+              href="/drink-reveal"
+              className="bg-green-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+            >
               🍹 Drink Reveal
             </a>
 
-            <a href="/pre-traitors" className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
+            <a
+              href="/pre-traitors"
+              className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+            >
               🏆 Före Traitors
             </a>
 
-            <a href="/traitors-reveal" className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
+            <a
+              href="/traitors-reveal"
+              className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+            >
               🕵️ The Traitors Reveal
             </a>
 
-            <a href="/final" className="bg-yellow-500 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
+            <a
+              href="/final"
+              className="bg-yellow-500 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+            >
               🎉 Final
             </a>
           </div>
@@ -413,27 +472,37 @@ export default function AdminPage() {
           <h2 className="text-3xl font-black mb-6">🏆 Totalställning</h2>
 
           <div className="grid gap-4">
-            {leaderboard.map((team, index) => (
-              <div
-                key={team.team}
-                className={`rounded-3xl p-5 flex items-center justify-between ${
-                  index === 0 ? `${team.color}` : "bg-zinc-800 text-white"
-                }`}
-              >
-                <div>
-                  <p className="text-3xl font-black">{team.name}</p>
+            {leaderboard.map((team, index) => {
+              const display = getTeamDisplay(team.team);
 
-                  <div className="flex flex-wrap gap-4 mt-2 text-sm opacity-80">
-                    <span>🧠 Quiz: {team.quiz}</span>
-                    <span>🍹 Dryck: {team.drinks}</span>
-                    <span>📸 Bild: {team.photo}</span>
-                    <span>🕵️ Förrädare: {team.traitors}</span>
+              return (
+                <div
+                  key={team.team}
+                  className={`rounded-3xl p-5 flex items-center justify-between ${
+                    index === 0 ? `${team.color}` : "bg-zinc-800 text-white"
+                  }`}
+                >
+                  <div>
+                    <p className="text-3xl font-black">
+                      {display.icon} {display.displayName}
+                    </p>
+
+                    <p className="text-gray-400 font-bold mt-1">
+                      {display.baseName}
+                    </p>
+
+                    <div className="flex flex-wrap gap-4 mt-2 text-sm opacity-80">
+                      <span>🧠 Quiz: {team.quiz}</span>
+                      <span>🍹 Dryck: {team.drinks}</span>
+                      <span>📸 Bild: {team.photo}</span>
+                      <span>🕵️ Förrädare: {team.traitors}</span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="text-5xl font-black">{team.total}</div>
-              </div>
-            ))}
+                  <div className="text-5xl font-black">{team.total}</div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -443,27 +512,45 @@ export default function AdminPage() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button onClick={resetQuiz} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
+            <button
+              onClick={resetQuiz}
+              className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
+            >
               Återställ quiz
             </button>
 
-            <button onClick={resetDrinks} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
+            <button
+              onClick={resetDrinks}
+              className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
+            >
               Återställ dryckestest
             </button>
 
-            <button onClick={resetPhotos} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
+            <button
+              onClick={resetPhotos}
+              className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
+            >
               Återställ bilder
             </button>
 
-            <button onClick={resetTraitors} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
+            <button
+              onClick={resetTraitors}
+              className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
+            >
               Återställ The Traitors
             </button>
 
-            <button onClick={loadData} className="bg-zinc-800 text-white px-4 py-4 rounded-2xl font-black">
+            <button
+              onClick={loadData}
+              className="bg-zinc-800 text-white px-4 py-4 rounded-2xl font-black"
+            >
               🔄 Uppdatera
             </button>
 
-            <button onClick={resetCompetition} className="bg-red-500 text-white px-4 py-4 rounded-2xl font-black">
+            <button
+              onClick={resetCompetition}
+              className="bg-red-500 text-white px-4 py-4 rounded-2xl font-black"
+            >
               🗑 Återställ hela tävlingen
             </button>
           </div>
