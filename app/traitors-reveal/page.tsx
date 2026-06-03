@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import RivieraHeader from "@/app/components/RivieraHeader";
 import { traitors } from "@/app/data/traitors";
+import { secretMissions } from "@/app/data/secretMissions";
 
-type TraitorVote = {
+type MissionVote = {
   team: string;
   suspect_name: string;
+  mission_guess: string | null;
   is_correct: boolean;
   points: number;
 };
@@ -32,8 +34,8 @@ const teamColors: Record<string, string> = {
   rod: "bg-red-500 text-white",
 };
 
-export default function TraitorsRevealPage() {
-  const [votes, setVotes] = useState<TraitorVote[]>([]);
+export default function SecretMissionRevealPage() {
+  const [votes, setVotes] = useState<MissionVote[]>([]);
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
   const [revealedTeams, setRevealedTeams] = useState<Record<string, boolean>>(
     {}
@@ -85,19 +87,25 @@ export default function TraitorsRevealPage() {
         <RivieraHeader />
 
         <h1 className="text-6xl font-black text-center mt-10 mb-4">
-          🕵️ THE TRAITORS
+          🎯 HEMLIGT UPPDRAG
         </h1>
 
         <p className="text-gray-400 text-center text-xl mb-10">
-          Vilka lag hittade sin förrädare?
+          Vilka lag avslöjade personen med det hemliga uppdraget?
         </p>
 
         <div className="grid gap-8">
           {Object.keys(fallbackTeamNames).map((team) => {
             const vote = votes.find((v) => v.team === team);
-            const correctTraitor = traitors[team];
+            const correctPerson = traitors[team];
+            const correctMission = secretMissions[team];
             const isRevealed = revealedTeams[team];
-            const isCorrect = vote?.suspect_name === correctTraitor;
+
+            const personIsCorrect = vote?.suspect_name === correctPerson;
+            const missionIsCorrect = vote?.mission_guess === correctMission;
+            const calculatedPoints =
+              (personIsCorrect ? 3 : 0) + (missionIsCorrect ? 2 : 0);
+
             const display = getTeamDisplay(team);
 
             return (
@@ -129,8 +137,16 @@ export default function TraitorsRevealPage() {
                       Laget misstänkte
                     </p>
 
-                    <p className="text-6xl font-black mb-8 text-yellow-400">
+                    <p className="text-6xl font-black mb-6 text-yellow-400">
                       {vote.suspect_name}
+                    </p>
+
+                    <p className="text-lg font-bold uppercase text-gray-400 mb-2">
+                      Laget trodde att uppdraget var
+                    </p>
+
+                    <p className="text-2xl font-black mb-8 text-yellow-400">
+                      {vote.mission_guess || "Inget uppdrag valt"}
                     </p>
 
                     {!isRevealed ? (
@@ -138,29 +154,49 @@ export default function TraitorsRevealPage() {
                         onClick={() => revealTeam(team)}
                         className="bg-yellow-400 text-black px-8 py-5 rounded-3xl font-black text-2xl hover:scale-105 transition-all"
                       >
-                        🕵️ Avslöja förrädaren
+                        🎯 Avslöja uppdraget
                       </button>
                     ) : (
                       <div
                         className={`rounded-3xl p-8 ${
-                          isCorrect
+                          calculatedPoints > 0
                             ? "bg-green-500 text-black"
                             : "bg-red-500 text-white"
                         }`}
                       >
                         <p className="text-lg font-bold uppercase mb-2">
-                          Den riktiga förrädaren var
+                          Personen med uppdraget var
                         </p>
 
                         <p className="text-6xl font-black mb-8">
-                          {correctTraitor}
+                          {correctPerson}
                         </p>
 
-                        <p className="text-4xl font-black">
-                          {isCorrect
-                            ? "✅ RÄTT — +5 POÄNG"
-                            : "❌ FEL — 0 POÄNG"}
+                        <p className="text-lg font-bold uppercase mb-2">
+                          Det hemliga uppdraget var
                         </p>
+
+                        <p className="text-3xl font-black mb-8">
+                          {correctMission}
+                        </p>
+
+                        <div className="bg-black/20 rounded-3xl p-5">
+                          <p className="text-3xl font-black mb-2">
+                            {personIsCorrect
+                              ? "✅ Rätt person: +3 p"
+                              : "❌ Fel person: 0 p"}
+                          </p>
+
+                          <p className="text-3xl font-black mb-4">
+                            {missionIsCorrect
+                              ? "✅ Rätt uppdrag: +2 p"
+                              : "❌ Fel uppdrag: 0 p"}
+                          </p>
+
+                          <p className="text-5xl font-black">
+                            Totalt: {calculatedPoints} p
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>

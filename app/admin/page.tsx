@@ -62,7 +62,6 @@ export default function AdminPage() {
   const [drinkAnswers, setDrinkAnswers] = useState<DrinkAnswer[]>([]);
   const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
   const [traitorVotes, setTraitorVotes] = useState<TraitorVote[]>([]);
-  const [traitorsActive, setTraitorsActive] = useState(false);
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
 
   useEffect(() => {
@@ -98,11 +97,6 @@ export default function AdminPage() {
       .from("traitor_votes")
       .select("*");
 
-    const { data: settingData } = await supabase
-      .from("game_settings")
-      .select("value")
-      .eq("key", "traitors_active")
-      .maybeSingle();
 
     const { data: teamNameData } = await supabase
       .from("team_display_names")
@@ -113,20 +107,9 @@ export default function AdminPage() {
     if (photoData) setPhotos(photoData);
     if (traitorData) setTraitorVotes(traitorData);
     if (teamNameData) setTeamDisplayNames(teamNameData);
-
-    setTraitorsActive(settingData?.value === "true");
   }
 
-  async function toggleTraitors() {
-    const newValue = !traitorsActive;
-
-    await supabase
-      .from("game_settings")
-      .update({ value: newValue ? "true" : "false" })
-      .eq("key", "traitors_active");
-
-    setTraitorsActive(newValue);
-  }
+    
 
   async function setPhotoScore(id: number, score: number) {
     await supabase
@@ -162,17 +145,13 @@ export default function AdminPage() {
   }
 
   async function resetTraitors() {
-    if (!confirm("Återställa The Traitors och dölja momentet igen?")) return;
+    if (!confirm("Återställa Hemligt Uppdrag?")) return;
 
     await supabase.from("traitor_votes").delete().neq("team", "");
 
-    await supabase
-      .from("game_settings")
-      .update({ value: "false" })
-      .eq("key", "traitors_active");
+    
 
     setTraitorVotes([]);
-    setTraitorsActive(false);
     loadData();
   }
 
@@ -445,28 +424,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
-          <h2 className="text-3xl font-black mb-4">
-            🕵️ The Traitors
-          </h2>
-
-          <p className="text-gray-400 mb-5">
-            Momentet är {traitorsActive ? "aktivt" : "dolt"} för lagen.
-          </p>
-
-          <button
-            onClick={toggleTraitors}
-            className={`w-full p-5 rounded-3xl font-black text-xl ${
-              traitorsActive
-                ? "bg-red-500 text-white"
-                : "bg-yellow-400 text-black"
-            }`}
-          >
-            {traitorsActive
-              ? "🕵️ Dölj The Traitors"
-              : "🕵️ Aktivera The Traitors"}
-          </button>
-        </section>
+        
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
           <h2 className="text-3xl font-black mb-6">🏆 Totalställning</h2>
@@ -495,7 +453,7 @@ export default function AdminPage() {
                       <span>🧠 Quiz: {team.quiz}</span>
                       <span>🍹 Dryck: {team.drinks}</span>
                       <span>📸 Bild: {team.photo}</span>
-                      <span>🕵️ Förrädare: {team.traitors}</span>
+                      <span>🕵️ Uppdrag: {team.traitors}</span>
                     </div>
                   </div>
 
