@@ -158,7 +158,7 @@ export default function PreTraitorsPage() {
         </p>
 
         <h1 className="text-5xl font-black text-center mt-3 mb-8">
-          STÄLLNING FÖRE THE TRAITORS
+          STÄLLNING FÖRE HEMLIGT UPPDRAG
         </h1>
 
         {leader && (
@@ -234,7 +234,7 @@ export default function PreTraitorsPage() {
           </p>
 
           <p className="text-gray-400 mt-2">
-            The Traitors kan fortfarande förändra allt.
+            Det hemliga uppdraget kan fortfarande förändra allt.
           </p>
         </div>
       </div>

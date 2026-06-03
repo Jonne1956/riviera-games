@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import RivieraHeader from "@/app/components/RivieraHeader";
 import { teamMembers } from "@/app/data/teamMembers";
-import { missionOptions, secretMissions } from "@/app/data/secretMissions";
+import { missionOptions } from "@/app/data/secretMissions";
 import { traitors } from "@/app/data/traitors";
 
 export default function SecretMissionPage() {
@@ -52,12 +52,8 @@ export default function SecretMissionPage() {
     }
 
     const correctPerson = traitors[team];
-    const correctMission = secretMissions[team];
-
     const personIsCorrect = selectedName === correctPerson;
-    const missionIsCorrect = selectedMission === correctMission;
-
-    const points = (personIsCorrect ? 3 : 0) + (missionIsCorrect ? 2 : 0);
+    const points = personIsCorrect ? 5 : 0;
 
     setSubmitting(true);
 
@@ -146,7 +142,7 @@ export default function SecretMissionPage() {
         <p className="text-gray-400 text-center mt-4 mb-8">
           I ert lag finns en person som har haft ett hemligt uppdrag under tävlingen.
           Diskutera, välj personen och vilket uppdrag ni tror personen hade.
-          Ni har bara ett försök.
+          Rätt person ger 5 poäng. Ni har bara ett försök.
         </p>
 
         <h2 className="text-2xl font-black mb-3">

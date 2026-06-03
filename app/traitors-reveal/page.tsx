@@ -91,7 +91,7 @@ export default function SecretMissionRevealPage() {
         </h1>
 
         <p className="text-gray-400 text-center text-xl mb-10">
-          Vilka lag avslöjade personen med det hemliga uppdraget?
+          Vilka lag avslöjade den hemliga uppdragspersonen?
         </p>
 
         <div className="grid gap-8">
@@ -102,9 +102,7 @@ export default function SecretMissionRevealPage() {
             const isRevealed = revealedTeams[team];
 
             const personIsCorrect = vote?.suspect_name === correctPerson;
-            const missionIsCorrect = vote?.mission_guess === correctMission;
-            const calculatedPoints =
-              (personIsCorrect ? 3 : 0) + (missionIsCorrect ? 2 : 0);
+            const finalPoints = personIsCorrect ? 5 : 0;
 
             const display = getTeamDisplay(team);
 
@@ -134,32 +132,46 @@ export default function SecretMissionRevealPage() {
                 ) : (
                   <div className="bg-zinc-800 rounded-3xl p-8 text-center">
                     <p className="text-lg font-bold uppercase text-gray-400 mb-2">
-                      Laget misstänkte
+                      Det hemliga uppdraget var
                     </p>
 
-                    <p className="text-6xl font-black mb-6 text-yellow-400">
-                      {vote.suspect_name}
+                    <p className="text-3xl font-black mb-8 text-yellow-400">
+                      {correctMission}
                     </p>
 
-                    <p className="text-lg font-bold uppercase text-gray-400 mb-2">
-                      Laget trodde att uppdraget var
-                    </p>
+                    <div className="grid md:grid-cols-2 gap-4 mb-8">
+                      <div className="bg-zinc-900 rounded-3xl p-5">
+                        <p className="text-sm font-bold uppercase text-gray-400 mb-2">
+                          Laget misstänkte
+                        </p>
 
-                    <p className="text-2xl font-black mb-8 text-yellow-400">
-                      {vote.mission_guess || "Inget uppdrag valt"}
-                    </p>
+                        <p className="text-5xl font-black text-yellow-400">
+                          {vote.suspect_name}
+                        </p>
+                      </div>
+
+                      <div className="bg-zinc-900 rounded-3xl p-5">
+                        <p className="text-sm font-bold uppercase text-gray-400 mb-2">
+                          Laget trodde att uppdraget var
+                        </p>
+
+                        <p className="text-xl font-black text-yellow-400">
+                          {vote.mission_guess || "Inget uppdrag valt"}
+                        </p>
+                      </div>
+                    </div>
 
                     {!isRevealed ? (
                       <button
                         onClick={() => revealTeam(team)}
                         className="bg-yellow-400 text-black px-8 py-5 rounded-3xl font-black text-2xl hover:scale-105 transition-all"
                       >
-                        🎯 Avslöja uppdraget
+                        🎯 Avslöja uppdragspersonen
                       </button>
                     ) : (
                       <div
                         className={`rounded-3xl p-8 ${
-                          calculatedPoints > 0
+                          personIsCorrect
                             ? "bg-green-500 text-black"
                             : "bg-red-500 text-white"
                         }`}
@@ -172,29 +184,19 @@ export default function SecretMissionRevealPage() {
                           {correctPerson}
                         </p>
 
-                        <p className="text-lg font-bold uppercase mb-2">
-                          Det hemliga uppdraget var
-                        </p>
-
-                        <p className="text-3xl font-black mb-8">
-                          {correctMission}
-                        </p>
-
                         <div className="bg-black/20 rounded-3xl p-5">
-                          <p className="text-3xl font-black mb-2">
+                          <p className="text-4xl font-black mb-4">
                             {personIsCorrect
-                              ? "✅ Rätt person: +3 p"
-                              : "❌ Fel person: 0 p"}
+                              ? "✅ RÄTT PERSON"
+                              : "❌ FEL PERSON"}
                           </p>
 
-                          <p className="text-3xl font-black mb-4">
-                            {missionIsCorrect
-                              ? "✅ Rätt uppdrag: +2 p"
-                              : "❌ Fel uppdrag: 0 p"}
+                          <p className="text-6xl font-black">
+                            {finalPoints} POÄNG
                           </p>
 
-                          <p className="text-5xl font-black">
-                            Totalt: {calculatedPoints} p
+                          <p className="mt-4 text-lg font-bold opacity-80">
+                            Uppdraget användes som ledtråd – poängen avgörs av rätt person.
                           </p>
                         </div>
                       </div>

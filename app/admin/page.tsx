@@ -404,14 +404,14 @@ export default function AdminPage() {
               href="/pre-traitors"
               className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
             >
-              🏆 Före Traitors
+              🏆 Före Hemligt Uppdrag
             </a>
 
             <a
               href="/traitors-reveal"
               className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
             >
-              🕵️ The Traitors Reveal
+              🎯 Hemligt Uppdrag Reveal
             </a>
 
             <a
