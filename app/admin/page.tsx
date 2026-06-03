@@ -179,7 +179,6 @@ export default function AdminPage() {
     setDrinkAnswers([]);
     setPhotos([]);
     setTraitorVotes([]);
-    setTraitorsActive(false);
   }
 
   function login() {
