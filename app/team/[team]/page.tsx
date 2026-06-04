@@ -7,22 +7,36 @@ import { supabase } from "@/lib/supabase";
 import RivieraHeader from "@/app/components/RivieraHeader";
 import { questions } from "@/app/data/quizQuestions";
 
-const teamNames: Record<string, string> = {
-  gul: "Lag Gul",
-  bla: "Lag Blå",
-  gron: "Lag Grön",
-  rod: "Lag Röd",
+type TeamDisplayName = {
+  team: string;
+  display_name: string;
+  icon: string;
+};
+
+const fallbackTeamNames: Record<string, TeamDisplayName> = {
+  gul: { team: "gul", display_name: "Lag Gul", icon: "⛷️" },
+  bla: { team: "bla", display_name: "Lag Blå", icon: "🔨" },
+  gron: { team: "gron", display_name: "Lag Grön", icon: "🍺" },
+  rod: { team: "rod", display_name: "Lag Röd", icon: "⛳" },
 };
 
 export default function TeamPage() {
   const params = useParams();
   const team = params.team as string;
-  const teamName = teamNames[team] || `Lag ${team}`;
 
   const [quizDone, setQuizDone] = useState(false);
   const [drinksDone, setDrinksDone] = useState(false);
   const [photoDone, setPhotoDone] = useState(false);
   const [missionDone, setMissionDone] = useState(false);
+  const [teamDisplay, setTeamDisplay] = useState<TeamDisplayName | null>(null);
+
+  const fallback = fallbackTeamNames[team] || {
+    team,
+    display_name: `Lag ${team}`,
+    icon: "",
+  };
+
+  const display = teamDisplay || fallback;
 
   async function loadStatus() {
     const { data: quizData } = await supabase
@@ -48,6 +62,12 @@ export default function TeamPage() {
       .eq("team", team)
       .limit(1);
 
+    const { data: teamNameData } = await supabase
+      .from("team_display_names")
+      .select("*")
+      .eq("team", team)
+      .maybeSingle();
+
     setQuizDone(
       Boolean(
         quizData &&
@@ -59,6 +79,10 @@ export default function TeamPage() {
     setDrinksDone(Boolean(drinkData && drinkData.length > 0));
     setPhotoDone(Boolean(photoData && photoData.length > 0));
     setMissionDone(Boolean(missionVoteData && missionVoteData.length > 0));
+
+    if (teamNameData) {
+      setTeamDisplay(teamNameData);
+    }
   }
 
   useEffect(() => {
@@ -81,9 +105,17 @@ export default function TeamPage() {
       <div className="max-w-md mx-auto pt-10">
         <RivieraHeader />
 
-        <h1 className="text-4xl font-bold text-center mb-2 mt-8">
-          {teamName}
-        </h1>
+        <div className="text-center mb-8 mt-8">
+          <p className="text-6xl mb-3">{display.icon}</p>
+
+          <h1 className="text-4xl font-black">
+            {display.display_name}
+          </h1>
+
+          <p className="text-gray-500 font-bold mt-2">
+            {fallback.display_name}
+          </p>
+        </div>
 
         <p className="text-gray-400 text-center mb-8">
           Välj vilket moment ni vill göra

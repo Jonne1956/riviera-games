@@ -11,25 +11,59 @@ type QuizAnswer = {
   question_id: number;
 };
 
+type TeamDisplayName = {
+  team: string;
+  display_name: string;
+  icon: string;
+};
+
+const fallbackTeamNames: Record<string, TeamDisplayName> = {
+  gul: { team: "gul", display_name: "Lag Gul", icon: "⛷️" },
+  bla: { team: "bla", display_name: "Lag Blå", icon: "🔨" },
+  gron: { team: "gron", display_name: "Lag Grön", icon: "🍺" },
+  rod: { team: "rod", display_name: "Lag Röd", icon: "⛳" },
+};
+
 export default function QuizOverviewPage() {
   const params = useParams();
   const team = params.team as string;
 
   const [answeredQuestions, setAnsweredQuestions] = useState<number[]>([]);
+  const [teamDisplay, setTeamDisplay] = useState<TeamDisplayName | null>(null);
 
-  async function loadAnswers() {
-    const { data } = await supabase
+  const fallback = fallbackTeamNames[team] || {
+    team,
+    display_name: `Lag ${team}`,
+    icon: "",
+  };
+
+  const display = teamDisplay || fallback;
+
+  async function loadData() {
+    const { data: answerData } = await supabase
       .from("quiz_answers")
       .select("question_id")
       .eq("team", team);
 
-    if (data) {
-      setAnsweredQuestions(data.map((answer: QuizAnswer) => answer.question_id));
+    const { data: teamNameData } = await supabase
+      .from("team_display_names")
+      .select("*")
+      .eq("team", team)
+      .maybeSingle();
+
+    if (answerData) {
+      setAnsweredQuestions(
+        answerData.map((answer: QuizAnswer) => answer.question_id)
+      );
+    }
+
+    if (teamNameData) {
+      setTeamDisplay(teamNameData);
     }
   }
 
   useEffect(() => {
-    loadAnswers();
+    loadData();
   }, []);
 
   const allDone = answeredQuestions.length === questions.length;
@@ -39,9 +73,21 @@ export default function QuizOverviewPage() {
       <div className="max-w-md mx-auto pt-6">
         <RivieraHeader />
 
-        <h1 className="text-4xl font-bold text-center mb-2 mt-8">
-          Quiz
-        </h1>
+        <div className="text-center mb-8 mt-8">
+          <p className="text-5xl mb-2">{display.icon}</p>
+
+          <p className="text-gray-500 font-bold">
+            {fallback.display_name}
+          </p>
+
+          <h1 className="text-4xl font-black mt-2">
+            Quiz
+          </h1>
+
+          <p className="text-yellow-400 font-black mt-1">
+            {display.display_name}
+          </p>
+        </div>
 
         <p className="text-gray-400 text-center mb-8">
           Välj fråga. Ni kan ta frågorna i valfri ordning.

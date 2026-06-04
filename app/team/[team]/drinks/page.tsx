@@ -12,6 +12,19 @@ const drinkOptions = [
   "Sockerfri läsk",
 ];
 
+type TeamDisplayName = {
+  team: string;
+  display_name: string;
+  icon: string;
+};
+
+const fallbackTeamNames: Record<string, TeamDisplayName> = {
+  gul: { team: "gul", display_name: "Lag Gul", icon: "⛷️" },
+  bla: { team: "bla", display_name: "Lag Blå", icon: "🔨" },
+  gron: { team: "gron", display_name: "Lag Grön", icon: "🍺" },
+  rod: { team: "rod", display_name: "Lag Röd", icon: "⛳" },
+};
+
 export default function DrinksPage() {
   const params = useParams();
   const router = useRouter();
@@ -23,21 +36,40 @@ export default function DrinksPage() {
   const [drink4, setDrink4] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [teamDisplay, setTeamDisplay] = useState<TeamDisplayName | null>(null);
+
+  const fallback = fallbackTeamNames[team] || {
+    team,
+    display_name: `Lag ${team}`,
+    icon: "",
+  };
+
+  const display = teamDisplay || fallback;
 
   useEffect(() => {
-    async function checkExistingSubmission() {
-      const { data } = await supabase
+    async function loadData() {
+      const { data: submissionData } = await supabase
         .from("drink_answers")
         .select("id")
         .eq("team", team)
         .limit(1);
 
-      if (data && data.length > 0) {
+      const { data: teamNameData } = await supabase
+        .from("team_display_names")
+        .select("*")
+        .eq("team", team)
+        .maybeSingle();
+
+      if (submissionData && submissionData.length > 0) {
         setAlreadySubmitted(true);
+      }
+
+      if (teamNameData) {
+        setTeamDisplay(teamNameData);
       }
     }
 
-    checkExistingSubmission();
+    loadData();
   }, [team]);
 
   async function submitAnswers() {
@@ -76,11 +108,21 @@ export default function DrinksPage() {
           <div className="mt-10 bg-green-500 text-black p-8 rounded-3xl text-center">
             <p className="text-5xl mb-4">✅</p>
 
-            <h1 className="text-3xl font-black mb-3">
+            <p className="text-5xl mb-2">{display.icon}</p>
+
+            <h1 className="text-3xl font-black mb-2">
               Dryckestest redan inskickat
             </h1>
 
-            <p className="font-bold">
+            <p className="font-black text-xl">
+              {display.display_name}
+            </p>
+
+            <p className="font-bold opacity-80 mt-1">
+              {fallback.display_name}
+            </p>
+
+            <p className="font-bold mt-5">
               Ni har redan skickat in era svar.
             </p>
           </div>
@@ -101,13 +143,25 @@ export default function DrinksPage() {
       <div className="max-w-md mx-auto pt-6">
         <RivieraHeader />
 
-        <p className="text-yellow-400 font-black text-center uppercase tracking-wide mt-8">
-          Moment 2
-        </p>
+        <div className="text-center mt-8 mb-8">
+          <p className="text-5xl mb-2">{display.icon}</p>
 
-        <h1 className="text-4xl font-black text-center mt-2">
-          Dryckestest
-        </h1>
+          <p className="text-yellow-400 font-black uppercase tracking-wide">
+            Moment 2
+          </p>
+
+          <h1 className="text-4xl font-black mt-2">
+            Dryckestest
+          </h1>
+
+          <p className="text-yellow-400 font-black mt-2">
+            {display.display_name}
+          </p>
+
+          <p className="text-gray-500 font-bold mt-1">
+            {fallback.display_name}
+          </p>
+        </div>
 
         <p className="text-gray-400 text-center mt-3 mb-8">
           Identifiera de fyra hemliga dryckerna. Ni har bara ett försök.

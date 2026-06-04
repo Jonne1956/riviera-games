@@ -494,7 +494,7 @@ export default function AdminPage() {
               onClick={resetTraitors}
               className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
             >
-              Återställ The Traitors
+              Återställ Hemligt Uppdrag
             </button>
 
             <button
