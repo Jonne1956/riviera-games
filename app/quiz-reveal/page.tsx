@@ -139,9 +139,37 @@ export default function QuizRevealPage() {
                           </p>
                         </div>
 
-                        <p className="text-base font-semibold mb-3">
+                        <p className="text-base font-semibold mb-4">
                           {question.text}
                         </p>
+
+                        <div className="bg-black/20 rounded-2xl p-4 mb-4">
+                          <p className="text-xs uppercase font-black opacity-70 mb-2">
+                            Svarsalternativ
+                          </p>
+
+                          <div className="grid gap-2 text-sm">
+                            {question.options.map((option: string) => {
+                              const isCorrectOption = option.startsWith(
+                                `${question.correctAnswer} —`
+                              );
+
+                              return (
+                                <p
+                                  key={option}
+                                  className={`font-bold ${
+                                    isCorrectOption
+                                      ? "text-yellow-400"
+                                      : "opacity-90"
+                                  }`}
+                                >
+                                  {isCorrectOption ? "⭐ " : ""}
+                                  {option}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        </div>
 
                         <div className="text-sm space-y-1">
                           <p>
