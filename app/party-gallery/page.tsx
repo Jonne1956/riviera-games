@@ -13,6 +13,7 @@ type PartyPhoto = {
 
 export default function PartyGalleryPage() {
   const [photos, setPhotos] = useState<PartyPhoto[]>([]);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   async function loadPhotos() {
     const { data } = await supabase
@@ -32,6 +33,26 @@ export default function PartyGalleryPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  async function deletePhoto(photoId: number) {
+    if (!confirm("Vill du ta bort bilden från festgalleriet?")) return;
+
+    setDeletingId(photoId);
+
+    const { error } = await supabase
+      .from("party_photos")
+      .delete()
+      .eq("id", photoId);
+
+    setDeletingId(null);
+
+    if (error) {
+      alert("Kunde inte ta bort bilden.");
+      return;
+    }
+
+    setPhotos((current) => current.filter((photo) => photo.id !== photoId));
+  }
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
@@ -59,7 +80,7 @@ export default function PartyGalleryPage() {
             {photos.map((photo) => (
               <div
                 key={photo.id}
-                className="bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800"
+                className="relative bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800"
               >
                 <img
                   src={photo.image_url}
@@ -67,6 +88,14 @@ export default function PartyGalleryPage() {
                   className="w-full aspect-square object-cover"
                 />
 
+                <button
+  onClick={() => deletePhoto(photo.id)}
+  disabled={deletingId === photo.id}
+  className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-lg text-xs"
+  title="Ta bort bild"
+>
+  🗑️
+</button>
               </div>
             ))}
           </div>
