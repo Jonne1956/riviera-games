@@ -1,6 +1,6 @@
 export const traitors: Record<string, string> = {
   bla: "Erik",
   gron: "Franco",
-  gul: "Carina",
+  gul: "Tompa",
   rod: "Hanne",
 };
