@@ -18,20 +18,12 @@ export default function PhotoWallLivePage() {
     const { data } = await supabase
       .from("party_photos")
       .select("id, image_url, created_at")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (data) {
-      const currentId = photos[currentIndex]?.id;
-
       setPhotos(data);
 
-      const latestIndex = data.findIndex(
-        (photo) => photo.id === currentId
-      );
-
-      if (latestIndex >= 0) {
-        setCurrentIndex(latestIndex);
-      } else {
+      if (currentIndex >= data.length) {
         setCurrentIndex(0);
       }
     }
@@ -40,24 +32,24 @@ export default function PhotoWallLivePage() {
   useEffect(() => {
     loadPhotos();
 
-    const interval = setInterval(loadPhotos, 3000);
+    const loadInterval = setInterval(loadPhotos, 10000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(loadInterval);
   }, []);
 
   useEffect(() => {
     if (photos.length === 0) return;
 
-    const interval = setInterval(() => {
+    const slideshowInterval = setInterval(() => {
       setFade(false);
 
       setTimeout(() => {
         setCurrentIndex((current) => (current + 1) % photos.length);
         setFade(true);
       }, 500);
-    }, 7500);
+    }, 5000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(slideshowInterval);
   }, [photos.length]);
 
   const currentPhoto = photos[currentIndex];
@@ -73,7 +65,7 @@ export default function PhotoWallLivePage() {
           </h1>
         </div>
 
-        {photos.length === 0 ? (
+        {photos.length === 0 || !currentPhoto ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-14 text-gray-400 text-3xl">
             Inga festbilder uppladdade ännu.
           </div>
