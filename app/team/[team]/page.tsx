@@ -13,6 +13,10 @@ type TeamDisplayName = {
   icon: string;
 };
 
+type SecretMissionStatus = {
+  guessed_member: string | null;
+};
+
 const fallbackTeamNames: Record<string, TeamDisplayName> = {
   gul: { team: "gul", display_name: "Lag Gul", icon: "⛷️" },
   bla: { team: "bla", display_name: "Lag Blå", icon: "🔨" },
@@ -37,6 +41,7 @@ export default function TeamPage() {
   };
 
   const display = teamDisplay || fallback;
+  const teamNameForDb = fallback.display_name;
 
   async function loadStatus() {
     const { data: quizData } = await supabase
@@ -56,11 +61,11 @@ export default function TeamPage() {
       .eq("team", team)
       .limit(1);
 
-    const { data: missionVoteData } = await supabase
-      .from("traitor_votes")
-      .select("id")
-      .eq("team", team)
-      .limit(1);
+    const { data: missionData } = await supabase
+      .from("secret_missions")
+      .select("guessed_member")
+      .eq("team_name", teamNameForDb)
+      .maybeSingle<SecretMissionStatus>();
 
     const { data: teamNameData } = await supabase
       .from("team_display_names")
@@ -78,7 +83,7 @@ export default function TeamPage() {
 
     setDrinksDone(Boolean(drinkData && drinkData.length > 0));
     setPhotoDone(Boolean(photoData && photoData.length > 0));
-    setMissionDone(Boolean(missionVoteData && missionVoteData.length > 0));
+    setMissionDone(Boolean(missionData?.guessed_member));
 
     if (teamNameData) {
       setTeamDisplay(teamNameData);
@@ -95,7 +100,7 @@ export default function TeamPage() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [team]);
+  }, [team, teamNameForDb]);
 
   const firstThreeDone = quizDone && drinksDone && photoDone;
   const allDone = firstThreeDone && missionDone;

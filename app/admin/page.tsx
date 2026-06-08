@@ -26,11 +26,12 @@ type PhotoSubmission = {
   photo_score: number | null;
 };
 
-type TraitorVote = {
-  team: string;
-  suspect_name: string;
-  is_correct: boolean;
-  points: number;
+type SecretMission = {
+  team_name: string;
+  guessed_member: string | null;
+  actual_member: string | null;
+  mission_text: string | null;
+  mission_completed: boolean | null;
 };
 
 type TeamDisplayName = {
@@ -61,7 +62,7 @@ export default function AdminPage() {
   const [quizAnswers, setQuizAnswers] = useState<QuizAnswer[]>([]);
   const [drinkAnswers, setDrinkAnswers] = useState<DrinkAnswer[]>([]);
   const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
-  const [traitorVotes, setTraitorVotes] = useState<TraitorVote[]>([]);
+  const [secretMissions, setSecretMissions] = useState<SecretMission[]>([]);
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
 
   useEffect(() => {
@@ -93,10 +94,10 @@ export default function AdminPage() {
       .select("*")
       .order("team");
 
-    const { data: traitorData } = await supabase
-      .from("traitor_votes")
-      .select("*");
-
+    const { data: secretMissionData } = await supabase
+      .from("secret_missions")
+      .select("*")
+      .order("team_name");
 
     const { data: teamNameData } = await supabase
       .from("team_display_names")
@@ -105,17 +106,31 @@ export default function AdminPage() {
     if (quizData) setQuizAnswers(quizData);
     if (drinkData) setDrinkAnswers(drinkData);
     if (photoData) setPhotos(photoData);
-    if (traitorData) setTraitorVotes(traitorData);
+    if (secretMissionData) {
+  console.log("SECRET MISSIONS I ADMIN:", secretMissionData);
+  setSecretMissions(secretMissionData);
+}
     if (teamNameData) setTeamDisplayNames(teamNameData);
   }
-
-    
 
   async function setPhotoScore(id: number, score: number) {
     await supabase
       .from("photo_submissions")
       .update({ photo_score: score })
       .eq("id", id);
+
+    loadData();
+  }
+
+  async function updateSecretMission(
+    teamName: string,
+    field: "actual_member" | "mission_text" | "mission_completed",
+    value: string | boolean
+  ) {
+    await supabase
+      .from("secret_missions")
+      .update({ [field]: value })
+      .eq("team_name", teamName);
 
     loadData();
   }
@@ -147,11 +162,17 @@ export default function AdminPage() {
   async function resetTraitors() {
     if (!confirm("Återställa Hemligt Uppdrag?")) return;
 
-    await supabase.from("traitor_votes").delete().neq("team", "");
+    await supabase
+      .from("secret_missions")
+      .update({
+        guessed_member: null,
+        actual_member: null,
+        mission_text: null,
+        mission_completed: false,
+      })
+      .neq("team_name", "");
 
-    
-
-    setTraitorVotes([]);
+    setSecretMissions([]);
     loadData();
   }
 
@@ -163,7 +184,16 @@ export default function AdminPage() {
     await supabase.from("quiz_answers").delete().neq("team", "");
     await supabase.from("drink_answers").delete().neq("team", "");
     await supabase.from("photo_submissions").delete().neq("team", "");
-    await supabase.from("traitor_votes").delete().neq("team", "");
+
+    await supabase
+      .from("secret_missions")
+      .update({
+        guessed_member: null,
+        actual_member: null,
+        mission_text: null,
+        mission_completed: false,
+      })
+      .neq("team_name", "");
 
     await supabase
       .from("game_settings")
@@ -178,7 +208,9 @@ export default function AdminPage() {
     setQuizAnswers([]);
     setDrinkAnswers([]);
     setPhotos([]);
-    setTraitorVotes([]);
+    setSecretMissions([]);
+
+    loadData();
   }
 
   function login() {
@@ -220,8 +252,17 @@ export default function AdminPage() {
   }
 
   function getTraitorScore(team: string) {
-    const vote = traitorVotes.find((v) => v.team === team);
-    return vote?.points || 0;
+    const teamRow = teamInfo.find((t) => t.team === team);
+    const mission = secretMissions.find(
+      (m) => m.team_name === teamRow?.name
+    );
+
+    if (!mission) return 0;
+    if (!mission.mission_completed) return 0;
+    if (!mission.actual_member) return 0;
+    if (!mission.guessed_member) return 0;
+
+    return mission.guessed_member === mission.actual_member ? 3 : 0;
   }
 
   function getTeamDisplay(team: string) {
@@ -372,58 +413,124 @@ export default function AdminPage() {
           <h2 className="text-3xl font-black mb-6">🎭 Showläge</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a
-              href="/team-names"
-              className="bg-zinc-700 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
-            >
+            <a href="/team-names" className="bg-zinc-700 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
               🏷️ Lagnamn
             </a>
 
-            <a
-              href="/photo-wall"
-              className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
-            >
+            <a href="/photo-wall" className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
               📸 Photo Wall
             </a>
 
-            <a
-              href="/quiz-reveal"
-              className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
-            >
+            <a href="/quiz-reveal" className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
               🧠 Quiz Reveal
             </a>
 
-            <a
-              href="/drink-reveal"
-              className="bg-green-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
-            >
+            <a href="/drink-reveal" className="bg-green-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
               🍹 Drink Reveal
             </a>
 
-            <a
-              href="/pre-traitors"
-              className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
-            >
+            <a href="/pre-traitors" className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
               🏆 Före Hemligt Uppdrag
             </a>
 
-            <a
-              href="/traitors-reveal"
-              className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
-            >
+            <a href="/traitors-reveal" className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
               🎯 Hemligt Uppdrag Reveal
             </a>
 
-            <a
-              href="/final"
-              className="bg-yellow-500 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
-            >
+            <a href="/final" className="bg-yellow-500 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
               🎉 Final
             </a>
           </div>
         </section>
 
-        
+        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
+  <h2 className="text-3xl font-black mb-6">
+    🎯 Hemligt Uppdrag – Admin
+  </h2>
+
+  <div className="grid gap-5">
+    {teamInfo.map((team) => {
+      const display = getTeamDisplay(team.team);
+      const mission = secretMissions.find(
+        (m) => m.team_name === team.name
+      );
+
+      const guessedMember = mission?.guessed_member;
+      const actualMember = mission?.actual_member;
+      const missionText = mission?.mission_text;
+
+      const hasGuessed = Boolean(guessedMember);
+      const isCorrect =
+        Boolean(guessedMember) &&
+        Boolean(actualMember) &&
+        guessedMember === actualMember;
+
+      const points = isCorrect ? 5 : 0;
+
+      return (
+        <div key={team.team} className="bg-zinc-800 rounded-3xl p-5">
+          <h3 className="text-2xl font-black mb-5">
+            {display.icon} {display.displayName}
+          </h3>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div className="bg-zinc-900 rounded-2xl p-4">
+              <p className="text-sm font-bold uppercase text-gray-400 mb-2">
+                Lagets gissning
+              </p>
+
+              <p className="text-3xl font-black text-yellow-400">
+                {guessedMember || "Ingen gissning ännu"}
+              </p>
+            </div>
+
+            <div className="bg-zinc-900 rounded-2xl p-4">
+              <p className="text-sm font-bold uppercase text-gray-400 mb-2">
+                Rätt person
+              </p>
+
+              <p className="text-3xl font-black text-white">
+                {actualMember || "Ej ifyllt"}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900 rounded-2xl p-4 mb-4">
+            <p className="text-sm font-bold uppercase text-gray-400 mb-2">
+              Hemligt uppdrag
+            </p>
+
+            <p className="text-xl font-bold text-white leading-relaxed">
+              {missionText || "Ej ifyllt"}
+            </p>
+          </div>
+
+          <div
+            className={`rounded-2xl p-5 text-center ${
+              !hasGuessed
+                ? "bg-zinc-700 text-white"
+                : isCorrect
+                  ? "bg-green-500 text-black"
+                  : "bg-red-500 text-white"
+            }`}
+          >
+            <p className="text-2xl font-black mb-2">
+              {!hasGuessed
+                ? "Inväntar lagets gissning"
+                : isCorrect
+                  ? "✅ Rätt gissning"
+                  : "❌ Fel gissning"}
+            </p>
+
+            <p className="text-5xl font-black">
+              {hasGuessed ? points : 0} poäng
+            </p>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</section>
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
           <h2 className="text-3xl font-black mb-6">🏆 Totalställning</h2>
@@ -469,45 +576,27 @@ export default function AdminPage() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button
-              onClick={resetQuiz}
-              className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
-            >
+            <button onClick={resetQuiz} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
               Återställ quiz
             </button>
 
-            <button
-              onClick={resetDrinks}
-              className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
-            >
+            <button onClick={resetDrinks} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
               Återställ dryckestest
             </button>
 
-            <button
-              onClick={resetPhotos}
-              className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
-            >
+            <button onClick={resetPhotos} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
               Återställ bilder
             </button>
 
-            <button
-              onClick={resetTraitors}
-              className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
-            >
+            <button onClick={resetTraitors} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
               Återställ Hemligt Uppdrag
             </button>
 
-            <button
-              onClick={loadData}
-              className="bg-zinc-800 text-white px-4 py-4 rounded-2xl font-black"
-            >
+            <button onClick={loadData} className="bg-zinc-800 text-white px-4 py-4 rounded-2xl font-black">
               🔄 Uppdatera
             </button>
 
-            <button
-              onClick={resetCompetition}
-              className="bg-red-500 text-white px-4 py-4 rounded-2xl font-black"
-            >
+            <button onClick={resetCompetition} className="bg-red-500 text-white px-4 py-4 rounded-2xl font-black">
               🗑 Återställ hela tävlingen
             </button>
           </div>
