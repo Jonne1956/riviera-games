@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import RivieraHeader from "@/app/components/RivieraHeader";
 import { questions } from "@/app/data/quizQuestions";
+import { getRivieraTeamMembers } from "@/app/lib/getRivieraTeamMembers";
 
 type QuizAnswer = {
   team: string;
@@ -64,6 +65,7 @@ export default function AdminPage() {
   const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
   const [secretMissions, setSecretMissions] = useState<SecretMission[]>([]);
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
+  const [teamMembersByTeam, setTeamMembersByTeam] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     const saved = localStorage.getItem("admin-access");
@@ -103,14 +105,18 @@ export default function AdminPage() {
       .from("team_display_names")
       .select("*");
 
+    const loadedTeamMembers: Record<string, string[]> = {};
+
+    for (const team of teamInfo) {
+      loadedTeamMembers[team.team] = await getRivieraTeamMembers(team.team);
+    }
+
     if (quizData) setQuizAnswers(quizData);
     if (drinkData) setDrinkAnswers(drinkData);
     if (photoData) setPhotos(photoData);
-    if (secretMissionData) {
-  console.log("SECRET MISSIONS I ADMIN:", secretMissionData);
-  setSecretMissions(secretMissionData);
-}
+    if (secretMissionData) setSecretMissions(secretMissionData);
     if (teamNameData) setTeamDisplayNames(teamNameData);
+    setTeamMembersByTeam(loadedTeamMembers);
   }
 
   async function setPhotoScore(id: number, score: number) {
@@ -125,7 +131,7 @@ export default function AdminPage() {
   async function updateSecretMission(
     teamName: string,
     field: "actual_member" | "mission_text" | "mission_completed",
-    value: string | boolean
+    value: string | boolean | null
   ) {
     await supabase
       .from("secret_missions")
@@ -253,16 +259,13 @@ export default function AdminPage() {
 
   function getTraitorScore(team: string) {
     const teamRow = teamInfo.find((t) => t.team === team);
-    const mission = secretMissions.find(
-      (m) => m.team_name === teamRow?.name
-    );
+    const mission = secretMissions.find((m) => m.team_name === teamRow?.name);
 
     if (!mission) return 0;
-    if (!mission.mission_completed) return 0;
     if (!mission.actual_member) return 0;
     if (!mission.guessed_member) return 0;
 
-    return mission.guessed_member === mission.actual_member ? 3 : 0;
+    return mission.guessed_member === mission.actual_member ? 5 : 0;
   }
 
   function getTeamDisplay(team: string) {
@@ -346,9 +349,7 @@ export default function AdminPage() {
           </p>
 
           {photos.length === 0 ? (
-            <p className="text-gray-400">
-              Inga lagbilder uppladdade ännu.
-            </p>
+            <p className="text-gray-400">Inga lagbilder uppladdade ännu.</p>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
               {photos.map((photo) => {
@@ -444,93 +445,172 @@ export default function AdminPage() {
         </section>
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
-  <h2 className="text-3xl font-black mb-6">
-    🎯 Hemligt Uppdrag – Admin
-  </h2>
+          <h2 className="text-3xl font-black mb-6">
+            🎯 Hemligt Uppdrag – Admin
+          </h2>
 
-  <div className="grid gap-5">
-    {teamInfo.map((team) => {
-      const display = getTeamDisplay(team.team);
-      const mission = secretMissions.find(
-        (m) => m.team_name === team.name
-      );
+          <div className="grid gap-5">
+            {teamInfo.map((team) => {
+              const display = getTeamDisplay(team.team);
+              const mission = secretMissions.find(
+                (m) => m.team_name === team.name
+              );
 
-      const guessedMember = mission?.guessed_member;
-      const actualMember = mission?.actual_member;
-      const missionText = mission?.mission_text;
+              const guessedMember = mission?.guessed_member;
+              const actualMember = mission?.actual_member;
+              const missionText = mission?.mission_text;
+              const missionCompleted = mission?.mission_completed || false;
 
-      const hasGuessed = Boolean(guessedMember);
-      const isCorrect =
-        Boolean(guessedMember) &&
-        Boolean(actualMember) &&
-        guessedMember === actualMember;
+              const hasGuessed = Boolean(guessedMember);
+              const hasActual = Boolean(actualMember);
+              const isCorrect =
+                Boolean(guessedMember) &&
+                Boolean(actualMember) &&
+                guessedMember === actualMember;
 
-      const points = isCorrect ? 5 : 0;
+              const points = isCorrect ? 5 : 0;
+              const qualifiesForPrize =
+                Boolean(missionCompleted) && Boolean(actualMember) && !isCorrect;
 
-      return (
-        <div key={team.team} className="bg-zinc-800 rounded-3xl p-5">
-          <h3 className="text-2xl font-black mb-5">
-            {display.icon} {display.displayName}
-          </h3>
+              const members = teamMembersByTeam[team.team] || [];
 
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="bg-zinc-900 rounded-2xl p-4">
-              <p className="text-sm font-bold uppercase text-gray-400 mb-2">
-                Lagets gissning
-              </p>
+              return (
+                <div key={team.team} className="bg-zinc-800 rounded-3xl p-5">
+                  <h3 className="text-2xl font-black mb-5">
+                    {display.icon} {display.displayName}
+                  </h3>
 
-              <p className="text-3xl font-black text-yellow-400">
-                {guessedMember || "Ingen gissning ännu"}
-              </p>
-            </div>
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div className="bg-zinc-900 rounded-2xl p-4">
+                      <p className="text-sm font-bold uppercase text-gray-400 mb-2">
+                        Lagets gissning
+                      </p>
 
-            <div className="bg-zinc-900 rounded-2xl p-4">
-              <p className="text-sm font-bold uppercase text-gray-400 mb-2">
-                Rätt person
-              </p>
+                      <p className="text-3xl font-black text-yellow-400">
+                        {guessedMember || "Ingen gissning ännu"}
+                      </p>
+                    </div>
 
-              <p className="text-3xl font-black text-white">
-                {actualMember || "Ej ifyllt"}
-              </p>
-            </div>
+                    <div className="bg-zinc-900 rounded-2xl p-4">
+                      <label className="text-sm font-bold uppercase text-gray-400 mb-2 block">
+                        Lagmedlem med hemligt uppdrag
+                      </label>
+
+                      <select
+                        value={actualMember || ""}
+                        onChange={(e) =>
+                          updateSecretMission(
+                            team.name,
+                            "actual_member",
+                            e.target.value || null
+                          )
+                        }
+                        className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black text-xl"
+                      >
+                        <option value="">Välj person</option>
+
+                        {members.map((member) => (
+                          <option key={member} value={member}>
+                            {member}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="bg-zinc-900 rounded-2xl p-4 mb-4">
+                    <label className="text-sm font-bold uppercase text-gray-400 mb-2 block">
+                      Hemligt uppdrag
+                    </label>
+
+                    <textarea
+                      value={missionText || ""}
+                      onChange={(e) =>
+                        updateSecretMission(
+                          team.name,
+                          "mission_text",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Skriv vilket uppdrag lagmedlemmen har haft..."
+                      className="w-full min-h-28 p-4 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-bold leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="bg-zinc-900 rounded-2xl p-4 mb-4">
+                    <p className="text-sm font-bold uppercase text-gray-400 mb-3">
+                      Har uppdraget genomförts?
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() =>
+                          updateSecretMission(
+                            team.name,
+                            "mission_completed",
+                            true
+                          )
+                        }
+                        className={`p-4 rounded-2xl font-black text-xl ${
+                          missionCompleted
+                            ? "bg-green-500 text-black"
+                            : "bg-zinc-700 text-white"
+                        }`}
+                      >
+                        ✅ Ja
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateSecretMission(
+                            team.name,
+                            "mission_completed",
+                            false
+                          )
+                        }
+                        className={`p-4 rounded-2xl font-black text-xl ${
+                          !missionCompleted
+                            ? "bg-red-500 text-white"
+                            : "bg-zinc-700 text-white"
+                        }`}
+                      >
+                        ❌ Nej
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`rounded-2xl p-5 text-center ${
+                      !hasGuessed || !hasActual
+                        ? "bg-zinc-700 text-white"
+                        : isCorrect
+                          ? "bg-green-500 text-black"
+                          : "bg-red-500 text-white"
+                    }`}
+                  >
+                    <p className="text-2xl font-black mb-2">
+                      {!hasGuessed
+                        ? "Inväntar lagets gissning"
+                        : !hasActual
+                          ? "Välj rätt person"
+                          : isCorrect
+                            ? "✅ Laget hittade rätt person"
+                            : "❌ Laget hittade inte rätt person"}
+                    </p>
+
+                    <p className="text-5xl font-black">{points} poäng</p>
+
+                    {qualifiesForPrize && (
+                      <p className="mt-4 text-xl font-black">
+                        🎁 Kvalificerad för kvällens hemliga uppdragspris
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          <div className="bg-zinc-900 rounded-2xl p-4 mb-4">
-            <p className="text-sm font-bold uppercase text-gray-400 mb-2">
-              Hemligt uppdrag
-            </p>
-
-            <p className="text-xl font-bold text-white leading-relaxed">
-              {missionText || "Ej ifyllt"}
-            </p>
-          </div>
-
-          <div
-            className={`rounded-2xl p-5 text-center ${
-              !hasGuessed
-                ? "bg-zinc-700 text-white"
-                : isCorrect
-                  ? "bg-green-500 text-black"
-                  : "bg-red-500 text-white"
-            }`}
-          >
-            <p className="text-2xl font-black mb-2">
-              {!hasGuessed
-                ? "Inväntar lagets gissning"
-                : isCorrect
-                  ? "✅ Rätt gissning"
-                  : "❌ Fel gissning"}
-            </p>
-
-            <p className="text-5xl font-black">
-              {hasGuessed ? points : 0} poäng
-            </p>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</section>
+        </section>
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
           <h2 className="text-3xl font-black mb-6">🏆 Totalställning</h2>

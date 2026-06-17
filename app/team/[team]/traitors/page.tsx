@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import RivieraHeader from "@/app/components/RivieraHeader";
-import { teamMembers } from "@/app/data/teamMembers";
+import { getRivieraTeamMembers } from "@/app/lib/getRivieraTeamMembers";
 
 type TeamDisplayName = {
   team: string;
@@ -29,8 +29,7 @@ export default function SecretMissionPage() {
   const router = useRouter();
   const team = params.team as string;
 
-  const members = teamMembers[team] || [];
-
+  const [members, setMembers] = useState<string[]>([]);
   const [selectedName, setSelectedName] = useState("");
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState("");
@@ -44,10 +43,13 @@ export default function SecretMissionPage() {
   };
 
   const display = teamDisplay || fallback;
-const teamNameForDb = fallback.display_name;
+  const teamNameForDb = fallback.display_name;
 
   useEffect(() => {
     async function loadData() {
+      const loadedMembers = await getRivieraTeamMembers(team);
+      setMembers(loadedMembers);
+
       const { data: missionData } = await supabase
         .from("secret_missions")
         .select("team_name, guessed_member")
@@ -74,42 +76,43 @@ const teamNameForDb = fallback.display_name;
   }, [team, teamNameForDb]);
 
   async function submitVote() {
-  if (!selectedName) {
-    alert("Välj en lagmedlem först.");
-    return;
+    if (!selectedName) {
+      alert("Välj en lagmedlem först.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    const { data, error } = await supabase
+      .from("secret_missions")
+      .update({
+        guessed_member: selectedName,
+      })
+      .eq("team_name", teamNameForDb)
+      .select("team_name, guessed_member")
+      .single();
+
+    setSubmitting(false);
+
+    if (error) {
+      console.error("Secret mission save error:", error);
+      alert(`Det gick inte att spara svaret: ${error.message}`);
+      return;
+    }
+
+    if (!data) {
+      alert("Svaret sparades inte. Kontrollera att laget finns i secret_missions.");
+      return;
+    }
+
+    setAlreadySubmitted(true);
+    setSubmittedName(selectedName);
+
+    setTimeout(() => {
+      router.push(`/team/${team}`);
+    }, 2000);
   }
 
-  setSubmitting(true);
-
-  const { data, error } = await supabase
-    .from("secret_missions")
-    .update({
-      guessed_member: selectedName,
-    })
-    .eq("team_name", teamNameForDb)
-    .select("team_name, guessed_member")
-    .single();
-
-  setSubmitting(false);
-
-  if (error) {
-    console.error("Secret mission save error:", error);
-    alert(`Det gick inte att spara svaret: ${error.message}`);
-    return;
-  }
-
-  if (!data) {
-    alert("Svaret sparades inte. Kontrollera att laget finns i secret_missions.");
-    return;
-  }
-
-  setAlreadySubmitted(true);
-  setSubmittedName(selectedName);
-
-  setTimeout(() => {
-    router.push(`/team/${team}`);
-  }, 2000);
-}
   if (alreadySubmitted) {
     return (
       <main className="min-h-screen bg-black text-white p-6">
@@ -188,26 +191,39 @@ const teamNameForDb = fallback.display_name;
           </p>
         </div>
 
-        <div className="grid gap-3 mb-8">
-          {members.map((name) => (
-            <button
-              key={name}
-              onClick={() => setSelectedName(name)}
-              className={`p-4 rounded-2xl font-black text-xl border transition-all ${
-                selectedName === name
-                  ? "bg-yellow-400 text-black border-yellow-400 scale-105"
-                  : "bg-zinc-900 text-white border-zinc-800"
-              }`}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
+        {members.length === 0 ? (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8 text-center">
+            <p className="text-yellow-400 font-black text-xl">
+              Inga lagmedlemmar hittades.
+            </p>
+
+            <p className="text-gray-400 font-bold mt-3">
+              Kontrollera att laget har aktiva gäster i music_guests och att
+              rivieragames_team är satt till {team}.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-3 mb-8">
+            {members.map((name) => (
+              <button
+                key={name}
+                onClick={() => setSelectedName(name)}
+                className={`p-4 rounded-2xl font-black text-xl border transition-all ${
+                  selectedName === name
+                    ? "bg-yellow-400 text-black border-yellow-400 scale-105"
+                    : "bg-zinc-900 text-white border-zinc-800"
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <button
           onClick={submitVote}
-          disabled={submitting}
-          className="w-full mt-8 p-5 rounded-3xl bg-yellow-400 text-black font-black text-xl hover:scale-105 transition"
+          disabled={submitting || members.length === 0}
+          className="w-full mt-8 p-5 rounded-3xl bg-yellow-400 text-black font-black text-xl hover:scale-105 transition disabled:opacity-50 disabled:hover:scale-100"
         >
           {submitting ? "Skickar..." : "🎭 Skicka gissning"}
         </button>

@@ -35,8 +35,10 @@ const fallbackTeamNames: Record<string, TeamDisplayName> = {
 export default function SecretMissionRevealPage() {
   const [missions, setMissions] = useState<SecretMission[]>([]);
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
-  const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
+  const [selectedTeamIndex, setSelectedTeamIndex] = useState<number | null>(null);
   const [step, setStep] = useState(0);
+  const [showPrize, setShowPrize] = useState(false);
+  const [revealedTeams, setRevealedTeams] = useState<Record<string, boolean>>({});
 
   async function loadData() {
     const { data: missionData } = await supabase
@@ -71,30 +73,244 @@ export default function SecretMissionRevealPage() {
     return missions.find((mission) => mission.team_name === teamName);
   }
 
+  function missionWasIdentified(mission: SecretMission) {
+    return (
+      Boolean(mission.guessed_member) &&
+      Boolean(mission.actual_member) &&
+      mission.guessed_member === mission.actual_member
+    );
+  }
+
   async function setMissionCompleted(teamName: string, completed: boolean) {
     await supabase
       .from("secret_missions")
       .update({ mission_completed: completed })
       .eq("team_name", teamName);
 
-    loadData();
+    await loadData();
     setStep(6);
+  }
+
+  function openTeam(index: number) {
+    setSelectedTeamIndex(index);
+    setShowPrize(false);
+    setStep(0);
+  }
+
+  function backToOverview() {
+    if (selectedTeamIndex !== null) {
+      const team = teams[selectedTeamIndex];
+
+      setRevealedTeams((current) => ({
+        ...current,
+        [team.team]: true,
+      }));
+    }
+
+    setSelectedTeamIndex(null);
+    setStep(0);
+    setShowPrize(false);
   }
 
   function nextStep() {
     setStep((current) => Math.min(current + 1, 6));
   }
 
-  function nextTeam() {
-    if (currentTeamIndex < teams.length - 1) {
-      setCurrentTeamIndex((current) => current + 1);
-      setStep(0);
-    } else {
-      setStep(7);
-    }
+  const prizeMissions = missions.filter(
+    (mission) =>
+      mission.mission_completed === true &&
+      Boolean(mission.actual_member) &&
+      !missionWasIdentified(mission)
+  );
+
+  if (showPrize) {
+    return (
+      <main className="min-h-screen bg-black text-white p-6">
+        <a
+          href="/admin"
+          className="fixed top-4 left-4 z-50 bg-zinc-800 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all"
+        >
+          ←
+        </a>
+
+        <div className="max-w-5xl mx-auto pt-8">
+          <RivieraHeader />
+
+          <div className="mt-16 bg-yellow-400 text-black rounded-3xl p-10 text-center">
+            <p className="text-7xl mb-4">🎁</p>
+
+            <h1 className="text-6xl font-black mb-6">
+              KVÄLLENS HEMLIGA UPPDRAGSPRIS
+            </h1>
+
+            <p className="text-2xl font-black mb-8">
+              Priset går till den eller de som genomförde sitt uppdrag utan att
+              laget hittade rätt person.
+            </p>
+
+            {prizeMissions.length === 0 ? (
+              <p className="text-4xl font-black">
+                Ingen kvalificerade sig för priset denna gång.
+              </p>
+            ) : (
+              <div className="grid gap-4">
+                {prizeMissions.map((mission) => (
+                  <div
+                    key={mission.team_name}
+                    className="bg-black/10 rounded-3xl p-6"
+                  >
+                    <p className="text-5xl font-black">
+                      🏆 {mission.actual_member}
+                    </p>
+
+                    <p className="text-xl font-bold mt-3">
+                      {mission.team_name}
+                    </p>
+
+                    <p className="text-lg font-bold mt-3 opacity-80">
+                      {mission.mission_text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-col md:flex-row gap-4 justify-center mt-10">
+              <button
+                onClick={() => setShowPrize(false)}
+                className="bg-black text-white px-8 py-5 rounded-3xl font-black text-2xl hover:scale-105 transition-all"
+              >
+                Tillbaka till lagen
+              </button>
+
+              <a
+                href="/final"
+                className="bg-black text-white px-8 py-5 rounded-3xl font-black text-2xl hover:scale-105 transition-all"
+              >
+                Gå vidare till finalen
+              </a>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
   }
 
-  const currentTeam = teams[currentTeamIndex];
+  if (selectedTeamIndex === null) {
+    return (
+      <main className="min-h-screen bg-black text-white p-6">
+        <a
+          href="/admin"
+          className="fixed top-4 left-4 z-50 bg-zinc-800 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all"
+        >
+          ←
+        </a>
+
+        <div className="max-w-6xl mx-auto pt-8">
+          <RivieraHeader />
+
+          <div className="text-center mt-10 mb-10">
+            <p className="text-yellow-400 font-black uppercase tracking-widest">
+              Hemligt Uppdrag Reveal
+            </p>
+
+            <h1 className="text-6xl font-black mt-3">Välj lag</h1>
+
+            <p className="text-gray-400 font-bold mt-4 text-xl">
+              Gå igenom lagen i valfri ordning.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {teams.map((team, index) => {
+              const display = getTeamDisplay(team.team);
+              const mission = getMissionForTeam(team.name);
+
+              const isRevealed = Boolean(revealedTeams[team.team]);
+
+              const isCorrect =
+                Boolean(mission?.guessed_member) &&
+                Boolean(mission?.actual_member) &&
+                mission?.guessed_member === mission?.actual_member;
+
+              const qualifiesForPrize =
+                mission?.mission_completed === true &&
+                Boolean(mission?.actual_member) &&
+                !isCorrect;
+
+              return (
+                <button
+                  key={team.team}
+                  onClick={() => openTeam(index)}
+                  className={`${team.color} rounded-3xl p-8 text-left hover:scale-105 transition-all shadow-2xl`}
+                >
+                  <p className="text-5xl mb-4">{display.icon}</p>
+
+                  <h2 className="text-4xl font-black mb-4">
+                    {display.display_name}
+                  </h2>
+
+                  <div className="bg-black/20 rounded-2xl p-4 font-black">
+                    {isRevealed ? (
+                      <>
+                        <p>
+                          Gissning:{" "}
+                          {mission?.guessed_member || "Ej inskickad"}
+                        </p>
+
+                        <p>
+                          Rätt person:{" "}
+                          {mission?.actual_member || "Ej ifylld"}
+                        </p>
+
+                        <p>
+                          Uppdrag:{" "}
+                          {mission?.mission_text ? "Ifyllt" : "Ej ifyllt"}
+                        </p>
+                      </>
+                    ) : (
+                      <p>🎭 Redo för reveal</p>
+                    )}
+                  </div>
+
+                  <div className="mt-5 text-xl font-black">
+                    {isRevealed ? "✅ Genomgånget" : "▶️ Starta reveal"}
+                  </div>
+
+                  {isRevealed &&
+                    mission?.actual_member &&
+                    mission?.guessed_member && (
+                      <div className="mt-3 font-black">
+                        <p>
+                          {isCorrect ? "🏆 Laget får 5 poäng" : "0 poäng"}
+                        </p>
+
+                        {qualifiesForPrize && (
+                          <p className="mt-1">
+                            🎁 Kvalificerad för uppdragspris
+                          </p>
+                        )}
+                      </div>
+                    )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-center mt-10">
+            <button
+              onClick={() => setShowPrize(true)}
+              className="bg-yellow-400 text-black px-10 py-6 rounded-3xl font-black text-3xl hover:scale-105 transition-all"
+            >
+              🎁 Visa individuellt pris
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const currentTeam = teams[selectedTeamIndex];
   const display = getTeamDisplay(currentTeam.team);
   const mission = getMissionForTeam(currentTeam.name);
 
@@ -110,69 +326,6 @@ export default function SecretMissionRevealPage() {
 
   const points = isCorrect ? 5 : 0;
 
-  const completedMissions = missions.filter(
-    (mission) => mission.mission_completed === true
-  );
-
-  if (step === 7) {
-    return (
-      <main className="min-h-screen bg-black text-white p-6">
-        <a
-          href="/admin"
-          className="fixed top-4 left-4 z-50 bg-zinc-800 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all"
-        >
-          ←
-        </a>
-
-        <div className="max-w-5xl mx-auto pt-8">
-          <RivieraHeader />
-
-          <div className="mt-16 bg-yellow-400 text-black rounded-3xl p-10 text-center">
-            <p className="text-7xl mb-4">🍾</p>
-
-            <h1 className="text-6xl font-black mb-6">
-              KVÄLLENS HEMLIGA UPPDRAGSTAGARE
-            </h1>
-
-            <p className="text-2xl font-black mb-8">
-              Individpriset går till den eller de som lyckades med sitt uppdrag.
-            </p>
-
-            {completedMissions.length === 0 ? (
-              <p className="text-4xl font-black">
-                Inga uppdrag klarades denna gång.
-              </p>
-            ) : (
-              <div className="grid gap-4">
-                {completedMissions.map((mission) => (
-                  <div
-                    key={mission.team_name}
-                    className="bg-black/10 rounded-3xl p-6"
-                  >
-                    <p className="text-5xl font-black">
-                      🏆 {mission.actual_member}
-                    </p>
-
-                    <p className="text-xl font-bold mt-3">
-                      {mission.team_name}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <a
-              href="/final"
-              className="inline-block mt-10 bg-black text-white px-8 py-5 rounded-3xl font-black text-2xl hover:scale-105 transition-all"
-            >
-              Gå vidare till finalen
-            </a>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-black text-white p-6">
       <a
@@ -181,6 +334,13 @@ export default function SecretMissionRevealPage() {
       >
         ←
       </a>
+
+      <button
+        onClick={backToOverview}
+        className="fixed top-4 right-4 z-50 bg-yellow-400 text-black px-5 py-3 rounded-2xl font-black shadow-2xl hover:scale-105 transition-all"
+      >
+        Alla lag
+      </button>
 
       <div className="max-w-5xl mx-auto pt-8">
         <RivieraHeader />
@@ -193,16 +353,12 @@ export default function SecretMissionRevealPage() {
           <h1 className="text-6xl font-black mt-3">
             {display.icon} {display.display_name}
           </h1>
-
-          <p className="text-gray-400 font-bold mt-2">
-            Lag {currentTeamIndex + 1} av {teams.length}
-          </p>
         </div>
 
         <section className={`${currentTeam.color} rounded-3xl p-10 text-center`}>
           {step === 0 && (
             <>
-              <p className="text-5xl mb-6">🎯</p>
+              <p className="text-5xl mb-6">🎭</p>
 
               <h2 className="text-5xl font-black mb-6">
                 Vem hade det hemliga uppdraget?
@@ -220,7 +376,7 @@ export default function SecretMissionRevealPage() {
           {step === 1 && (
             <>
               <p className="text-3xl font-black uppercase opacity-80 mb-4">
-                Lagets gissning
+                Ni gissar att lagmedlemmen med det hemliga uppdraget är
               </p>
 
               <h2 className="text-8xl font-black mb-8">
@@ -239,7 +395,7 @@ export default function SecretMissionRevealPage() {
           {step === 2 && (
             <>
               <p className="text-3xl font-black uppercase opacity-80 mb-4">
-                Den rätta personen var
+                Lagmedlemmen med det hemliga uppdraget är
               </p>
 
               <h2 className="text-8xl font-black mb-8">
@@ -250,7 +406,7 @@ export default function SecretMissionRevealPage() {
                 onClick={nextStep}
                 className="bg-black text-white px-8 py-5 rounded-3xl font-black text-2xl hover:scale-105 transition-all"
               >
-                Visa poäng
+                Visa lagets resultat
               </button>
             </>
           )}
@@ -259,13 +415,11 @@ export default function SecretMissionRevealPage() {
             <>
               <p className="text-4xl font-black mb-6">
                 {isCorrect
-                  ? "Ert lag lyckades avslöja rätt person 👍"
-                  : "Ert lag lyckades tyvärr inte avslöja rätt person 👎"}
+                  ? "Laget hittade rätt person"
+                  : "Laget hittade inte rätt person"}
               </p>
 
-              <h2 className="text-8xl font-black mb-8">
-                {points} POÄNG
-              </h2>
+              <h2 className="text-8xl font-black mb-8">{points} POÄNG</h2>
 
               <button
                 onClick={nextStep}
@@ -279,7 +433,11 @@ export default function SecretMissionRevealPage() {
           {step === 4 && (
             <>
               <p className="text-4xl font-black uppercase opacity-80 mb-8">
-                Men vad var egentligen uppdraget?
+                {actualMember || "Lagmedlemmen"}, berätta!
+              </p>
+
+              <p className="text-2xl font-black opacity-80 mb-10">
+                Vad har du försökt göra under tävlingen?
               </p>
 
               <button
@@ -294,7 +452,7 @@ export default function SecretMissionRevealPage() {
           {step === 5 && (
             <>
               <p className="text-3xl font-black uppercase opacity-80 mb-4">
-                Det hemliga uppdraget var
+                {actualMember || "Lagmedlemmens"} hemliga uppdrag
               </p>
 
               <h2 className="text-5xl font-black leading-tight mb-10">
@@ -302,7 +460,7 @@ export default function SecretMissionRevealPage() {
               </h2>
 
               <h3 className="text-4xl font-black mb-6">
-                Klarade {actualMember || "uppdragstagaren"} uppdraget?
+                Har uppdraget genomförts?
               </h3>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -326,28 +484,28 @@ export default function SecretMissionRevealPage() {
           {step === 6 && (
             <>
               <p className="text-6xl mb-6">
-                {missionCompleted ? "🍾" : "❌"}
+                {missionCompleted ? "🎁" : "❌"}
               </p>
 
               <h2 className="text-6xl font-black mb-8">
                 {missionCompleted
-                  ? "Uppdraget lyckades!"
-                  : "Uppdraget lyckades inte"}
+                  ? "Uppdraget genomfördes"
+                  : "Uppdraget genomfördes inte"}
               </h2>
 
               <p className="text-3xl font-black opacity-80 mb-8">
-                {missionCompleted
-                  ? `${actualMember} är med i kampen om skumpan.`
-                  : `${actualMember} får tyvärr ingen skumpa denna gång.`}
+                {missionCompleted && !isCorrect
+                  ? `${actualMember} kvalificerar sig för kvällens hemliga uppdragspris.`
+                  : missionCompleted && isCorrect
+                    ? `${actualMember} genomförde uppdraget, men laget hittade rätt person.`
+                    : `${actualMember} kvalificerar sig inte för priset denna gång.`}
               </p>
 
               <button
-                onClick={nextTeam}
+                onClick={backToOverview}
                 className="bg-black text-white px-8 py-5 rounded-3xl font-black text-2xl hover:scale-105 transition-all"
               >
-                {currentTeamIndex < teams.length - 1
-                  ? "Nästa lag"
-                  : "Visa individuellt pris"}
+                Tillbaka till alla lag
               </button>
             </>
           )}
