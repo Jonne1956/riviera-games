@@ -889,23 +889,27 @@ export default function AdminPage() {
             <div className="mt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <a href="/photo-wall" className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  📸 Photo Wall
+                  📸 Lagbilder
                 </a>
+                <a
+  href="/party-gallery"
+  className="bg-pink-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+>
+  🖼️ Festgalleri
+</a>
 
                 <a href="/quiz-reveal" className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  🧠 Quiz Reveal
+                  🧠 Quizresultat
                 </a>
 
                 <a href="/drink-reveal" className="bg-green-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  🍹 Drink Reveal
+                  🍹 Dryckesresultat
                 </a>
 
-                <a href="/pre-traitors" className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  🏆 Före Hemligt Uppdrag
-                </a>
+                
 
                 <a href="/traitors-reveal" className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  🎯 Hemligt Uppdrag Reveal
+                  🎯 Hemligt Uppdrag-resultat
                 </a>
 
                 <a href="/final" className="bg-yellow-500 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
@@ -913,41 +917,9 @@ export default function AdminPage() {
                 </a>
               </div>
 
-              <h3 className="text-3xl font-black mb-6">🏆 Totalställning</h3>
+              
 
-              <div className="grid gap-4">
-                {leaderboard.map((team, index) => {
-                  const display = getTeamDisplay(team.team);
-
-                  return (
-                    <div
-                      key={team.team}
-                      className={`rounded-3xl p-5 flex items-center justify-between ${
-                        index === 0 ? `${team.color}` : "bg-zinc-800 text-white"
-                      }`}
-                    >
-                      <div>
-                        <p className="text-3xl font-black">
-                          {display.icon} {display.displayName}
-                        </p>
-
-                        <p className="text-gray-400 font-bold mt-1">
-                          {display.baseName}
-                        </p>
-
-                        <div className="flex flex-wrap gap-4 mt-2 text-sm opacity-80">
-                          <span>🧠 Quiz: {team.quiz}</span>
-                          <span>🍹 Dryck: {team.drinks}</span>
-                          <span>📸 Bild: {team.photo}</span>
-                          <span>🕵️ Uppdrag: {team.traitors}</span>
-                        </div>
-                      </div>
-
-                      <div className="text-5xl font-black">{team.total}</div>
-                    </div>
-                  );
-                })}
-              </div>
+              
             </div>
           )}
         </section>

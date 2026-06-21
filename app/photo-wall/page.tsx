@@ -66,11 +66,11 @@ export default function PhotoWallPage() {
         <RivieraHeader />
 
         <h1 className="text-5xl font-black text-center mt-10">
-          LIVE PHOTO WALL
+          Lagbilder
         </h1>
 
         <p className="text-center text-gray-400 mt-3 mb-10">
-          Gruppbilder från Riviera Games 📸
+          
         </p>
 
         {photos.length === 0 ? (
