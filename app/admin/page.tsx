@@ -81,9 +81,10 @@ export default function AdminPage() {
   const [secretMissions, setSecretMissions] = useState<SecretMission[]>([]);
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
   const [guests, setGuests] = useState<MusicGuest[]>([]);
+  const [showGuestEditor, setShowGuestEditor] = useState(false);
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
-    beforeParty: true,
+    beforeParty: false,
     beforeCompetition: false,
     duringCompetition: false,
     final: false,
@@ -540,7 +541,15 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                <div className="grid gap-3">
+                <button
+  onClick={() => setShowGuestEditor((current) => !current)}
+  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
+>
+  {showGuestEditor ? "▼ Dölj gästredigering" : "▶ Redigera gäster"}
+</button>
+
+{showGuestEditor && (
+  <div className="grid gap-3">
                   {guests.map((guest) => (
                     <div
                       key={guest.id}
@@ -597,12 +606,43 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
 
               <div className="bg-zinc-800 rounded-3xl p-5">
                 <h3 className="text-3xl font-black mb-6">
                   🎯 Hemligt Uppdrag – Admin
                 </h3>
+                <div className="grid md:grid-cols-2 gap-3 mb-6">
+  {teamInfo.map((team) => {
+    const mission = secretMissions.find(
+      (m) => m.team_name === team.name
+    );
+
+    const ready =
+      mission?.actual_member &&
+      mission?.mission_text &&
+      mission?.mission_text.trim().length > 0;
+
+    return (
+      <div
+        key={team.team}
+        className={`rounded-2xl p-4 font-black ${
+          ready
+            ? "bg-green-500 text-black"
+            : "bg-yellow-500 text-black"
+        }`}
+      >
+        {team.name}:{" "}
+{ready
+  ? "✅ Klar"
+  : !mission?.actual_member
+    ? "⚠️ Saknar person"
+    : "⚠️ Saknar uppdrag"}
+      </div>
+    );
+  })}
+</div>
 
                 <div className="grid gap-5">
                   {teamInfo.map((team) => {

@@ -56,6 +56,12 @@ export default function PartyGalleryPage() {
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
+      <a
+  href="/admin"
+  className="fixed top-4 left-4 z-50 w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-3xl"
+>
+  ←
+</a>
       <div className="max-w-7xl mx-auto pt-8">
         <RivieraHeader />
 
