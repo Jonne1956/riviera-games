@@ -249,6 +249,36 @@ async function updateGuestName(guestId: number, currentName: string) {
 
   loadData();
 }
+async function deleteGuest(guestId: number, guestName: string) {
+  const confirmed = confirm(
+    `Är du säker på att du vill ta bort ${guestName}?`
+  );
+
+  if (!confirmed) return;
+
+  const { data, error } = await supabase
+    .from("music_guests")
+    .delete()
+    .eq("id", guestId)
+    .select();
+
+  if (error) {
+    console.error("Kunde inte ta bort gäst:", error);
+    alert(`Kunde inte ta bort gäst: ${error.message}`);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert(
+      "Gästen kunde inte tas bort. Supabase tillåter troligen inte delete ännu."
+    );
+    return;
+  }
+
+  alert(`${guestName} är borttagen.`);
+  loadData();
+}
+
 
 async function addGuest() {
   const trimmedName = newGuestName.trim();
@@ -718,7 +748,12 @@ if (guestAlreadyExists) {
 >
   💾 Spara namn
 </button>
-
+<button
+  onClick={() => deleteGuest(guest.id, guest.name)}
+  className="px-4 py-3 rounded-2xl font-black bg-zinc-700 text-white hover:bg-zinc-600"
+>
+  🗑 Ta bort
+</button>
                         <button
                           onClick={() =>
                             updateGuestActive(
