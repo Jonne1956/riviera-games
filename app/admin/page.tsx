@@ -82,6 +82,8 @@ export default function AdminPage() {
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
   const [guests, setGuests] = useState<MusicGuest[]>([]);
   const [showGuestEditor, setShowGuestEditor] = useState(false);
+  const [showAddGuest, setShowAddGuest] = useState(false);
+  const [showSecretMissionEditor, setShowSecretMissionEditor] = useState(false);
   const [newGuestName, setNewGuestName] = useState("");
 const [newGuestTeam, setNewGuestTeam] = useState("gul");
 const [isAddingGuest, setIsAddingGuest] = useState(false);
@@ -665,7 +667,19 @@ if (guestAlreadyExists) {
 >
   {showGuestEditor ? "▼ Dölj gästredigering" : "▶ Redigera gäster"}
 </button>
-<div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4 mb-4">
+<button
+  onClick={() => setShowAddGuest((current) => !current)}
+  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
+>
+  {showAddGuest
+    ? "▼ Dölj Lägg till gäst"
+    : "▶ Lägg till gäst"}
+</button>
+<div
+  className={`bg-zinc-900 border border-zinc-700 rounded-2xl p-4 mb-4 ${
+    showAddGuest ? "" : "hidden"
+  }`}
+>
   <p className="text-xl font-black mb-3">➕ Lägg till gäst</p>
 
   <div className="grid md:grid-cols-3 gap-3">
@@ -742,18 +756,25 @@ if (guestAlreadyExists) {
                         </select>
 
                         <button
-  onClick={() => updateGuestName(guest.id, guest.name)}
-  disabled={guest.is_active === false}
-  className="px-4 py-3 rounded-2xl font-black bg-yellow-500 text-black disabled:opacity-40"
->
-  💾 Spara namn
-</button>
-<button
+                        onClick={() => updateGuestName(guest.id, guest.name)}
+                        disabled={guest.is_active === false}
+                        className="px-4 py-3 rounded-2xl font-black bg-yellow-500 text-black disabled:opacity-40"
+                        >
+                        💾 Spara namn
+                        </button>
+
+                        <button
   onClick={() => deleteGuest(guest.id, guest.name)}
-  className="px-4 py-3 rounded-2xl font-black bg-zinc-700 text-white hover:bg-zinc-600"
+  disabled={guest.is_active !== false}
+  className={`px-4 py-3 rounded-2xl font-black ${
+    guest.is_active === false
+      ? "bg-zinc-700 text-white hover:bg-zinc-600"
+      : "bg-zinc-900 text-zinc-500 cursor-not-allowed"
+  }`}
 >
   🗑 Ta bort
 </button>
+                        
                         <button
                           onClick={() =>
                             updateGuestActive(
@@ -812,8 +833,15 @@ if (guestAlreadyExists) {
     );
   })}
 </div>
-
-                <div className="grid gap-5">
+<button
+  onClick={() => setShowSecretMissionEditor((current) => !current)}
+  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
+>
+  {showSecretMissionEditor
+    ? "▼ Dölj Hemligt Uppdrag-redigering"
+    : "▶ Redigera Hemligt Uppdrag"}
+</button>
+                <div className={`grid gap-5 ${showSecretMissionEditor ? "" : "hidden"}`}>
                   {teamInfo.map((team) => {
                     const display = getTeamDisplay(team.team);
                     const mission = secretMissions.find(
