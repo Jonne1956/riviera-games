@@ -82,6 +82,10 @@ export default function AdminPage() {
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
   const [guests, setGuests] = useState<MusicGuest[]>([]);
   const [showGuestEditor, setShowGuestEditor] = useState(false);
+  const [newGuestName, setNewGuestName] = useState("");
+const [newGuestTeam, setNewGuestTeam] = useState("gul");
+const [isAddingGuest, setIsAddingGuest] = useState(false);
+const [editedGuestNames, setEditedGuestNames] = useState<Record<number, string>>({});
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     beforeParty: false,
@@ -203,6 +207,90 @@ export default function AdminPage() {
 
     loadData();
   }
+async function updateGuestName(guestId: number, currentName: string) {
+  const newName = (editedGuestNames[guestId] ?? currentName).trim();
+
+  if (!newName) {
+    alert("Namnet kan inte vara tomt.");
+    return;
+  }
+
+  if (newName.toLowerCase() === "ewa") {
+    alert("Ewa ska inte vara med i Riviera Games.");
+    return;
+  }
+
+  const nameAlreadyExists = guests.some(
+    (guest) =>
+      guest.id !== guestId &&
+      guest.name.toLowerCase() === newName.toLowerCase()
+  );
+
+  if (nameAlreadyExists) {
+    alert("Det finns redan en gäst med det namnet.");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("music_guests")
+    .update({ name: newName })
+    .eq("id", guestId);
+
+  if (error) {
+    alert(`Kunde inte uppdatera namn: ${error.message}`);
+    return;
+  }
+
+  setEditedGuestNames((current) => {
+    const updated = { ...current };
+    delete updated[guestId];
+    return updated;
+  });
+
+  loadData();
+}
+
+async function addGuest() {
+  const trimmedName = newGuestName.trim();
+
+  if (!trimmedName) {
+    alert("Skriv ett namn först.");
+    return;
+  }
+
+  if (trimmedName.toLowerCase() === "ewa") {
+    alert("Ewa ska inte vara med i Riviera Games.");
+    return;
+  }
+const guestAlreadyExists = guests.some(
+  (guest) => guest.name.toLowerCase() === trimmedName.toLowerCase()
+);
+
+if (guestAlreadyExists) {
+  alert("Den gästen finns redan.");
+  return;
+}
+  setIsAddingGuest(true);
+
+  const { error } = await supabase.from("music_guests").insert({
+    name: trimmedName,
+    rivieragames_team: newGuestTeam,
+    is_active: true,
+  });
+
+  if (error) {
+    console.error("Kunde inte lägga till gäst:", error);
+    alert(`Kunde inte lägga till gäst: ${error.message}`);
+    setIsAddingGuest(false);
+    return;
+  }
+
+  setNewGuestName("");
+  setNewGuestTeam("gul");
+  setIsAddingGuest(false);
+
+  loadData();
+}
 
   async function setPhotoScore(id: number, score: number) {
     await supabase
@@ -547,7 +635,37 @@ export default function AdminPage() {
 >
   {showGuestEditor ? "▼ Dölj gästredigering" : "▶ Redigera gäster"}
 </button>
+<div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4 mb-4">
+  <p className="text-xl font-black mb-3">➕ Lägg till gäst</p>
 
+  <div className="grid md:grid-cols-3 gap-3">
+    <input
+      value={newGuestName}
+      onChange={(e) => setNewGuestName(e.target.value)}
+      placeholder="Namn"
+      className="p-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black"
+    />
+
+    <select
+      value={newGuestTeam}
+      onChange={(e) => setNewGuestTeam(e.target.value)}
+      className="p-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black"
+    >
+      <option value="gul">Lag Gul</option>
+      <option value="bla">Lag Blå</option>
+      <option value="gron">Lag Grön</option>
+      <option value="rod">Lag Röd</option>
+    </select>
+
+    <button
+      onClick={addGuest}
+      disabled={isAddingGuest}
+      className="bg-green-500 hover:bg-green-400 text-black font-black p-3 rounded-2xl disabled:opacity-50"
+    >
+      {isAddingGuest ? "Lägger till..." : "➕ Lägg till gäst"}
+    </button>
+  </div>
+</div>
 {showGuestEditor && (
   <div className="grid gap-3">
                   {guests.map((guest) => (
@@ -559,15 +677,23 @@ export default function AdminPage() {
                           : "bg-zinc-900"
                       }`}
                     >
-                      <p
-                        className={`text-xl font-black ${
-                          guest.is_active === false
-                            ? "text-gray-500 line-through"
-                            : "text-white"
-                        }`}
-                      >
-                        {guest.name}
-                      </p>
+                      <div className="flex-1">
+  <input
+    value={editedGuestNames[guest.id] ?? guest.name}
+    onChange={(e) =>
+      setEditedGuestNames((current) => ({
+        ...current,
+        [guest.id]: e.target.value,
+      }))
+    }
+    disabled={guest.is_active === false}
+    className={`w-full p-3 rounded-2xl bg-zinc-800 border border-zinc-700 font-black ${
+      guest.is_active === false
+        ? "text-gray-500 line-through opacity-50"
+        : "text-white"
+    }`}
+  />
+</div>
 
                       <div className="flex flex-col md:flex-row gap-3">
                         <select
@@ -586,9 +712,17 @@ export default function AdminPage() {
                         </select>
 
                         <button
+  onClick={() => updateGuestName(guest.id, guest.name)}
+  disabled={guest.is_active === false}
+  className="px-4 py-3 rounded-2xl font-black bg-yellow-500 text-black disabled:opacity-40"
+>
+  💾 Spara namn
+</button>
+
+                        <button
                           onClick={() =>
                             updateGuestActive(
-                              guest.id,
+                              guest.id, 
                               guest.is_active === false
                             )
                           }
