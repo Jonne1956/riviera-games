@@ -71,6 +71,10 @@ const teamInfo = [
 const excludedFromRivieraGames = ["Ewa"];
 
 export default function AdminPage() {
+  useEffect(() => {
+    document.title = "Admin | 🏆 Riviera Games";
+  }, []);
+
   const [pin, setPin] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
@@ -85,9 +89,9 @@ export default function AdminPage() {
   const [showAddGuest, setShowAddGuest] = useState(false);
   const [showSecretMissionEditor, setShowSecretMissionEditor] = useState(false);
   const [newGuestName, setNewGuestName] = useState("");
-const [newGuestTeam, setNewGuestTeam] = useState("gul");
-const [isAddingGuest, setIsAddingGuest] = useState(false);
-const [editedGuestNames, setEditedGuestNames] = useState<Record<number, string>>({});
+  const [newGuestTeam, setNewGuestTeam] = useState("gul");
+  const [isAddingGuest, setIsAddingGuest] = useState(false);
+  const [editedGuestNames, setEditedGuestNames] = useState<Record<number, string>>({});
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     beforeParty: false,
@@ -209,120 +213,123 @@ const [editedGuestNames, setEditedGuestNames] = useState<Record<number, string>>
 
     loadData();
   }
-async function updateGuestName(guestId: number, currentName: string) {
-  const newName = (editedGuestNames[guestId] ?? currentName).trim();
 
-  if (!newName) {
-    alert("Namnet kan inte vara tomt.");
-    return;
-  }
+  async function updateGuestName(guestId: number, currentName: string) {
+    const newName = (editedGuestNames[guestId] ?? currentName).trim();
 
-  if (newName.toLowerCase() === "ewa") {
-    alert("Ewa ska inte vara med i Riviera Games.");
-    return;
-  }
+    if (!newName) {
+      alert("Namnet kan inte vara tomt.");
+      return;
+    }
 
-  const nameAlreadyExists = guests.some(
-    (guest) =>
-      guest.id !== guestId &&
-      guest.name.toLowerCase() === newName.toLowerCase()
-  );
+    if (newName.toLowerCase() === "ewa") {
+      alert("Ewa ska inte vara med i Riviera Games.");
+      return;
+    }
 
-  if (nameAlreadyExists) {
-    alert("Det finns redan en gäst med det namnet.");
-    return;
-  }
-
-  const { error } = await supabase
-    .from("music_guests")
-    .update({ name: newName })
-    .eq("id", guestId);
-
-  if (error) {
-    alert(`Kunde inte uppdatera namn: ${error.message}`);
-    return;
-  }
-
-  setEditedGuestNames((current) => {
-    const updated = { ...current };
-    delete updated[guestId];
-    return updated;
-  });
-
-  loadData();
-}
-async function deleteGuest(guestId: number, guestName: string) {
-  const confirmed = confirm(
-    `Är du säker på att du vill ta bort ${guestName}?`
-  );
-
-  if (!confirmed) return;
-
-  const { data, error } = await supabase
-    .from("music_guests")
-    .delete()
-    .eq("id", guestId)
-    .select();
-
-  if (error) {
-    console.error("Kunde inte ta bort gäst:", error);
-    alert(`Kunde inte ta bort gäst: ${error.message}`);
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    alert(
-      "Gästen kunde inte tas bort. Supabase tillåter troligen inte delete ännu."
+    const nameAlreadyExists = guests.some(
+      (guest) =>
+        guest.id !== guestId &&
+        guest.name.toLowerCase() === newName.toLowerCase()
     );
-    return;
+
+    if (nameAlreadyExists) {
+      alert("Det finns redan en gäst med det namnet.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("music_guests")
+      .update({ name: newName })
+      .eq("id", guestId);
+
+    if (error) {
+      alert(`Kunde inte uppdatera namn: ${error.message}`);
+      return;
+    }
+
+    setEditedGuestNames((current) => {
+      const updated = { ...current };
+      delete updated[guestId];
+      return updated;
+    });
+
+    loadData();
   }
 
-  alert(`${guestName} är borttagen.`);
-  loadData();
-}
+  async function deleteGuest(guestId: number, guestName: string) {
+    const confirmed = confirm(
+      `Är du säker på att du vill ta bort ${guestName}?`
+    );
 
+    if (!confirmed) return;
 
-async function addGuest() {
-  const trimmedName = newGuestName.trim();
+    const { data, error } = await supabase
+      .from("music_guests")
+      .delete()
+      .eq("id", guestId)
+      .select();
 
-  if (!trimmedName) {
-    alert("Skriv ett namn först.");
-    return;
+    if (error) {
+      console.error("Kunde inte ta bort gäst:", error);
+      alert(`Kunde inte ta bort gäst: ${error.message}`);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert(
+        "Gästen kunde inte tas bort. Supabase tillåter troligen inte delete ännu."
+      );
+      return;
+    }
+
+    alert(`${guestName} är borttagen.`);
+    loadData();
   }
 
-  if (trimmedName.toLowerCase() === "ewa") {
-    alert("Ewa ska inte vara med i Riviera Games.");
-    return;
-  }
-const guestAlreadyExists = guests.some(
-  (guest) => guest.name.toLowerCase() === trimmedName.toLowerCase()
-);
+  async function addGuest() {
+    const trimmedName = newGuestName.trim();
 
-if (guestAlreadyExists) {
-  alert("Den gästen finns redan.");
-  return;
-}
-  setIsAddingGuest(true);
+    if (!trimmedName) {
+      alert("Skriv ett namn först.");
+      return;
+    }
 
-  const { error } = await supabase.from("music_guests").insert({
-    name: trimmedName,
-    rivieragames_team: newGuestTeam,
-    is_active: true,
-  });
+    if (trimmedName.toLowerCase() === "ewa") {
+      alert("Ewa ska inte vara med i Riviera Games.");
+      return;
+    }
 
-  if (error) {
-    console.error("Kunde inte lägga till gäst:", error);
-    alert(`Kunde inte lägga till gäst: ${error.message}`);
+    const guestAlreadyExists = guests.some(
+      (guest) => guest.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (guestAlreadyExists) {
+      alert("Den gästen finns redan.");
+      return;
+    }
+
+    setIsAddingGuest(true);
+
+    const { error } = await supabase.from("music_guests").insert({
+      name: trimmedName,
+      rivieragames_team: newGuestTeam,
+      is_active: true,
+    });
+
+    if (error) {
+      console.error("Kunde inte lägga till gäst:", error);
+      alert(`Kunde inte lägga till gäst: ${error.message}`);
+      setIsAddingGuest(false);
+      return;
+    }
+
+    setNewGuestName("");
+    setNewGuestTeam("gul");
     setIsAddingGuest(false);
-    return;
+
+    loadData();
   }
-
-  setNewGuestName("");
-  setNewGuestTeam("gul");
-  setIsAddingGuest(false);
-
-  loadData();
-}
 
   async function setPhotoScore(id: number, score: number) {
     await supabase
@@ -499,6 +506,13 @@ if (guestAlreadyExists) {
   if (!isAuthenticated) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+        <a
+          href="/control-center"
+          className="fixed top-4 left-4 bg-zinc-900 hover:bg-zinc-800 border border-yellow-400 text-yellow-400 font-black px-4 py-3 rounded-2xl z-50"
+        >
+          ← Control Center
+        </a>
+
         <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 w-full max-w-sm">
           <h1 className="text-4xl font-black text-center mb-6">
             Admin Login
@@ -557,6 +571,13 @@ if (guestAlreadyExists) {
   return (
     <main className="min-h-screen bg-black text-white p-6">
       <div className="max-w-6xl mx-auto pt-8">
+        <a
+          href="/control-center"
+          className="inline-block bg-zinc-900 hover:bg-zinc-800 border border-yellow-400 text-yellow-400 font-black px-5 py-3 rounded-2xl mb-6"
+        >
+          ← Control Center
+        </a>
+
         <RivieraHeader />
 
         <h1 className="text-5xl font-black text-center mt-8 mb-10">
@@ -662,140 +683,143 @@ if (guestAlreadyExists) {
                 )}
 
                 <button
-  onClick={() => setShowGuestEditor((current) => !current)}
-  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
->
-  {showGuestEditor ? "▼ Dölj gästredigering" : "▶ Redigera gäster"}
-</button>
-<button
-  onClick={() => setShowAddGuest((current) => !current)}
-  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
->
-  {showAddGuest
-    ? "▼ Dölj Lägg till gäst"
-    : "▶ Lägg till gäst"}
-</button>
-<div
-  className={`bg-zinc-900 border border-zinc-700 rounded-2xl p-4 mb-4 ${
-    showAddGuest ? "" : "hidden"
-  }`}
->
-  <p className="text-xl font-black mb-3">➕ Lägg till gäst</p>
+                  onClick={() => setShowGuestEditor((current) => !current)}
+                  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
+                >
+                  {showGuestEditor ? "▼ Dölj gästredigering" : "▶ Redigera gäster"}
+                </button>
 
-  <div className="grid md:grid-cols-3 gap-3">
-    <input
-      value={newGuestName}
-      onChange={(e) => setNewGuestName(e.target.value)}
-      placeholder="Namn"
-      className="p-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black"
-    />
+                <button
+                  onClick={() => setShowAddGuest((current) => !current)}
+                  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
+                >
+                  {showAddGuest
+                    ? "▼ Dölj Lägg till gäst"
+                    : "▶ Lägg till gäst"}
+                </button>
 
-    <select
-      value={newGuestTeam}
-      onChange={(e) => setNewGuestTeam(e.target.value)}
-      className="p-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black"
-    >
-      <option value="gul">Lag Gul</option>
-      <option value="bla">Lag Blå</option>
-      <option value="gron">Lag Grön</option>
-      <option value="rod">Lag Röd</option>
-    </select>
+                <div
+                  className={`bg-zinc-900 border border-zinc-700 rounded-2xl p-4 mb-4 ${
+                    showAddGuest ? "" : "hidden"
+                  }`}
+                >
+                  <p className="text-xl font-black mb-3">➕ Lägg till gäst</p>
 
-    <button
-      onClick={addGuest}
-      disabled={isAddingGuest}
-      className="bg-green-500 hover:bg-green-400 text-black font-black p-3 rounded-2xl disabled:opacity-50"
-    >
-      {isAddingGuest ? "Lägger till..." : "➕ Lägg till gäst"}
-    </button>
-  </div>
-</div>
-{showGuestEditor && (
-  <div className="grid gap-3">
-                  {guests.map((guest) => (
-                    <div
-                      key={guest.id}
-                      className={`rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 ${
-                        guest.is_active === false
-                          ? "bg-zinc-950 border border-zinc-800 opacity-70"
-                          : "bg-zinc-900"
-                      }`}
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <input
+                      value={newGuestName}
+                      onChange={(e) => setNewGuestName(e.target.value)}
+                      placeholder="Namn"
+                      className="p-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black"
+                    />
+
+                    <select
+                      value={newGuestTeam}
+                      onChange={(e) => setNewGuestTeam(e.target.value)}
+                      className="p-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black"
                     >
-                      <div className="flex-1">
-  <input
-    value={editedGuestNames[guest.id] ?? guest.name}
-    onChange={(e) =>
-      setEditedGuestNames((current) => ({
-        ...current,
-        [guest.id]: e.target.value,
-      }))
-    }
-    disabled={guest.is_active === false}
-    className={`w-full p-3 rounded-2xl bg-zinc-800 border border-zinc-700 font-black ${
-      guest.is_active === false
-        ? "text-gray-500 line-through opacity-50"
-        : "text-white"
-    }`}
-  />
-</div>
+                      <option value="gul">Lag Gul</option>
+                      <option value="bla">Lag Blå</option>
+                      <option value="gron">Lag Grön</option>
+                      <option value="rod">Lag Röd</option>
+                    </select>
 
-                      <div className="flex flex-col md:flex-row gap-3">
-                        <select
-                          value={guest.rivieragames_team || ""}
-                          onChange={(e) =>
-                            updateGuestTeam(guest.id, e.target.value || null)
-                          }
-                          disabled={guest.is_active === false}
-                          className="p-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black disabled:opacity-40"
-                        >
-                          <option value="">Inget lag</option>
-                          <option value="gul">Lag Gul</option>
-                          <option value="bla">Lag Blå</option>
-                          <option value="gron">Lag Grön</option>
-                          <option value="rod">Lag Röd</option>
-                        </select>
-
-                        <button
-                        onClick={() => updateGuestName(guest.id, guest.name)}
-                        disabled={guest.is_active === false}
-                        className="px-4 py-3 rounded-2xl font-black bg-yellow-500 text-black disabled:opacity-40"
-                        >
-                        💾 Spara namn
-                        </button>
-
-                        <button
-  onClick={() => deleteGuest(guest.id, guest.name)}
-  disabled={guest.is_active !== false}
-  className={`px-4 py-3 rounded-2xl font-black ${
-    guest.is_active === false
-      ? "bg-zinc-700 text-white hover:bg-zinc-600"
-      : "bg-zinc-900 text-zinc-500 cursor-not-allowed"
-  }`}
->
-  🗑 Ta bort
-</button>
-                        
-                        <button
-                          onClick={() =>
-                            updateGuestActive(
-                              guest.id, 
-                              guest.is_active === false
-                            )
-                          }
-                          className={`px-4 py-3 rounded-2xl font-black ${
-                            guest.is_active === false
-                              ? "bg-green-500 text-black"
-                              : "bg-red-500 text-white"
-                          }`}
-                        >
-                          {guest.is_active === false
-                            ? "Återaktivera"
-                            : "Inaktivera"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    <button
+                      onClick={addGuest}
+                      disabled={isAddingGuest}
+                      className="bg-green-500 hover:bg-green-400 text-black font-black p-3 rounded-2xl disabled:opacity-50"
+                    >
+                      {isAddingGuest ? "Lägger till..." : "➕ Lägg till gäst"}
+                    </button>
+                  </div>
                 </div>
+
+                {showGuestEditor && (
+                  <div className="grid gap-3">
+                    {guests.map((guest) => (
+                      <div
+                        key={guest.id}
+                        className={`rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 ${
+                          guest.is_active === false
+                            ? "bg-zinc-950 border border-zinc-800 opacity-70"
+                            : "bg-zinc-900"
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <input
+                            value={editedGuestNames[guest.id] ?? guest.name}
+                            onChange={(e) =>
+                              setEditedGuestNames((current) => ({
+                                ...current,
+                                [guest.id]: e.target.value,
+                              }))
+                            }
+                            disabled={guest.is_active === false}
+                            className={`w-full p-3 rounded-2xl bg-zinc-800 border border-zinc-700 font-black ${
+                              guest.is_active === false
+                                ? "text-gray-500 line-through opacity-50"
+                                : "text-white"
+                            }`}
+                          />
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-3">
+                          <select
+                            value={guest.rivieragames_team || ""}
+                            onChange={(e) =>
+                              updateGuestTeam(guest.id, e.target.value || null)
+                            }
+                            disabled={guest.is_active === false}
+                            className="p-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-black disabled:opacity-40"
+                          >
+                            <option value="">Inget lag</option>
+                            <option value="gul">Lag Gul</option>
+                            <option value="bla">Lag Blå</option>
+                            <option value="gron">Lag Grön</option>
+                            <option value="rod">Lag Röd</option>
+                          </select>
+
+                          <button
+                            onClick={() => updateGuestName(guest.id, guest.name)}
+                            disabled={guest.is_active === false}
+                            className="px-4 py-3 rounded-2xl font-black bg-yellow-500 text-black disabled:opacity-40"
+                          >
+                            💾 Spara namn
+                          </button>
+
+                          <button
+                            onClick={() => deleteGuest(guest.id, guest.name)}
+                            disabled={guest.is_active !== false}
+                            className={`px-4 py-3 rounded-2xl font-black ${
+                              guest.is_active === false
+                                ? "bg-zinc-700 text-white hover:bg-zinc-600"
+                                : "bg-zinc-900 text-zinc-500 cursor-not-allowed"
+                            }`}
+                          >
+                            🗑 Ta bort
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              updateGuestActive(
+                                guest.id,
+                                guest.is_active === false
+                              )
+                            }
+                            className={`px-4 py-3 rounded-2xl font-black ${
+                              guest.is_active === false
+                                ? "bg-green-500 text-black"
+                                : "bg-red-500 text-white"
+                            }`}
+                          >
+                            {guest.is_active === false
+                              ? "Återaktivera"
+                              : "Inaktivera"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -803,44 +827,47 @@ if (guestAlreadyExists) {
                 <h3 className="text-3xl font-black mb-6">
                   🎯 Hemligt Uppdrag – Admin
                 </h3>
+
                 <div className="grid md:grid-cols-2 gap-3 mb-6">
-  {teamInfo.map((team) => {
-    const mission = secretMissions.find(
-      (m) => m.team_name === team.name
-    );
+                  {teamInfo.map((team) => {
+                    const mission = secretMissions.find(
+                      (m) => m.team_name === team.name
+                    );
 
-    const ready =
-      mission?.actual_member &&
-      mission?.mission_text &&
-      mission?.mission_text.trim().length > 0;
+                    const ready =
+                      mission?.actual_member &&
+                      mission?.mission_text &&
+                      mission?.mission_text.trim().length > 0;
 
-    return (
-      <div
-        key={team.team}
-        className={`rounded-2xl p-4 font-black ${
-          ready
-            ? "bg-green-500 text-black"
-            : "bg-yellow-500 text-black"
-        }`}
-      >
-        {team.name}:{" "}
-{ready
-  ? "✅ Klar"
-  : !mission?.actual_member
-    ? "⚠️ Saknar person"
-    : "⚠️ Saknar uppdrag"}
-      </div>
-    );
-  })}
-</div>
-<button
-  onClick={() => setShowSecretMissionEditor((current) => !current)}
-  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
->
-  {showSecretMissionEditor
-    ? "▼ Dölj Hemligt Uppdrag-redigering"
-    : "▶ Redigera Hemligt Uppdrag"}
-</button>
+                    return (
+                      <div
+                        key={team.team}
+                        className={`rounded-2xl p-4 font-black ${
+                          ready
+                            ? "bg-green-500 text-black"
+                            : "bg-yellow-500 text-black"
+                        }`}
+                      >
+                        {team.name}:{" "}
+                        {ready
+                          ? "✅ Klar"
+                          : !mission?.actual_member
+                            ? "⚠️ Saknar person"
+                            : "⚠️ Saknar uppdrag"}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setShowSecretMissionEditor((current) => !current)}
+                  className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
+                >
+                  {showSecretMissionEditor
+                    ? "▼ Dölj Hemligt Uppdrag-redigering"
+                    : "▶ Redigera Hemligt Uppdrag"}
+                </button>
+
                 <div className={`grid gap-5 ${showSecretMissionEditor ? "" : "hidden"}`}>
                   {teamInfo.map((team) => {
                     const display = getTeamDisplay(team.team);
@@ -1128,12 +1155,13 @@ if (guestAlreadyExists) {
                 <a href="/photo-wall" className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
                   📸 Lagbilder
                 </a>
+
                 <a
-  href="/party-gallery"
-  className="bg-pink-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
->
-  🖼️ Festgalleri
-</a>
+                  href="/party-gallery"
+                  className="bg-pink-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+                >
+                  🖼️ Festgalleri
+                </a>
 
                 <a href="/quiz-reveal" className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
                   🧠 Quizresultat
@@ -1143,8 +1171,6 @@ if (guestAlreadyExists) {
                   🍹 Dryckesresultat
                 </a>
 
-                
-
                 <a href="/traitors-reveal" className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
                   🎯 Hemligt Uppdrag-resultat
                 </a>
@@ -1153,10 +1179,6 @@ if (guestAlreadyExists) {
                   🎉 Final
                 </a>
               </div>
-
-              
-
-              
             </div>
           )}
         </section>
