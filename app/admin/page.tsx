@@ -48,10 +48,11 @@ type MusicGuest = {
 };
 
 type SectionKey =
-  | "beforeParty"
-  | "beforeCompetition"
-  | "duringCompetition"
-  | "final"
+  | "guests"
+  | "secretMission"
+  | "teamNames"
+  | "photos"
+  | "results"
   | "reset";
 
 const correctDrinks = {
@@ -83,7 +84,9 @@ export default function AdminPage() {
   const [drinkAnswers, setDrinkAnswers] = useState<DrinkAnswer[]>([]);
   const [photos, setPhotos] = useState<PhotoSubmission[]>([]);
   const [secretMissions, setSecretMissions] = useState<SecretMission[]>([]);
-  const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
+  const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>(
+    [],
+  );
   const [guests, setGuests] = useState<MusicGuest[]>([]);
   const [showGuestEditor, setShowGuestEditor] = useState(false);
   const [showAddGuest, setShowAddGuest] = useState(false);
@@ -91,21 +94,14 @@ export default function AdminPage() {
   const [newGuestName, setNewGuestName] = useState("");
   const [newGuestTeam, setNewGuestTeam] = useState("gul");
   const [isAddingGuest, setIsAddingGuest] = useState(false);
-  const [editedGuestNames, setEditedGuestNames] = useState<Record<number, string>>({});
+  const [editedGuestNames, setEditedGuestNames] = useState<
+    Record<number, string>
+  >({});
 
-  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
-    beforeParty: false,
-    beforeCompetition: false,
-    duringCompetition: false,
-    final: false,
-    reset: false,
-  });
+  const [openSection, setOpenSection] = useState<SectionKey | null>("guests");
 
   function toggleSection(section: SectionKey) {
-    setOpenSections((current) => ({
-      ...current,
-      [section]: !current[section],
-    }));
+    setOpenSection((current) => (current === section ? null : section));
   }
 
   function SectionHeader({
@@ -117,21 +113,23 @@ export default function AdminPage() {
     title: string;
     description: string;
   }) {
-    const isOpen = openSections[section];
+    const isOpen = openSection === section;
 
     return (
       <button
         onClick={() => toggleSection(section)}
-        className="w-full text-left flex items-center justify-between gap-4"
+        className="w-full text-left flex items-center justify-between gap-4 rounded-2xl hover:bg-zinc-800/60 transition-all"
       >
-        <div>
-          <h2 className="text-4xl font-black mb-2">
+        <div className="py-1">
+          <h2 className="text-3xl md:text-4xl font-black mb-2">
             {isOpen ? "▼" : "▶"} {title}
           </h2>
-          <p className="text-gray-400">{description}</p>
+          <p className="inline-block bg-zinc-800 border border-zinc-700 rounded-full px-4 py-2 text-sm md:text-base text-gray-300 font-bold">
+            {description}
+          </p>
         </div>
 
-        <div className="text-4xl font-black text-yellow-400">
+        <div className="text-4xl font-black text-yellow-400 shrink-0">
           {isOpen ? "−" : "+"}
         </div>
       </button>
@@ -160,7 +158,9 @@ export default function AdminPage() {
 
   async function loadData() {
     const { data: quizData } = await supabase.from("quiz_answers").select("*");
-    const { data: drinkData } = await supabase.from("drink_answers").select("*");
+    const { data: drinkData } = await supabase
+      .from("drink_answers")
+      .select("*");
 
     const { data: photoData } = await supabase
       .from("photo_submissions")
@@ -190,8 +190,8 @@ export default function AdminPage() {
     if (guestData) {
       setGuests(
         guestData.filter(
-          (guest) => !excludedFromRivieraGames.includes(guest.name)
-        )
+          (guest) => !excludedFromRivieraGames.includes(guest.name),
+        ),
       );
     }
   }
@@ -230,7 +230,7 @@ export default function AdminPage() {
     const nameAlreadyExists = guests.some(
       (guest) =>
         guest.id !== guestId &&
-        guest.name.toLowerCase() === newName.toLowerCase()
+        guest.name.toLowerCase() === newName.toLowerCase(),
     );
 
     if (nameAlreadyExists) {
@@ -259,7 +259,7 @@ export default function AdminPage() {
 
   async function deleteGuest(guestId: number, guestName: string) {
     const confirmed = confirm(
-      `Är du säker på att du vill ta bort ${guestName}?`
+      `Är du säker på att du vill ta bort ${guestName}?`,
     );
 
     if (!confirmed) return;
@@ -278,7 +278,7 @@ export default function AdminPage() {
 
     if (!data || data.length === 0) {
       alert(
-        "Gästen kunde inte tas bort. Supabase tillåter troligen inte delete ännu."
+        "Gästen kunde inte tas bort. Supabase tillåter troligen inte delete ännu.",
       );
       return;
     }
@@ -301,7 +301,7 @@ export default function AdminPage() {
     }
 
     const guestAlreadyExists = guests.some(
-      (guest) => guest.name.toLowerCase() === trimmedName.toLowerCase()
+      (guest) => guest.name.toLowerCase() === trimmedName.toLowerCase(),
     );
 
     if (guestAlreadyExists) {
@@ -343,7 +343,7 @@ export default function AdminPage() {
   async function updateSecretMission(
     teamName: string,
     field: "actual_member" | "mission_text" | "mission_completed",
-    value: string | boolean | null
+    value: string | boolean | null,
   ) {
     await supabase
       .from("secret_missions")
@@ -495,9 +495,7 @@ export default function AdminPage() {
 
   function getGuestsForTeam(team: string) {
     return guests.filter(
-      (guest) =>
-        guest.is_active !== false &&
-        guest.rivieragames_team === team
+      (guest) => guest.is_active !== false && guest.rivieragames_team === team,
     );
   }
 
@@ -514,9 +512,7 @@ export default function AdminPage() {
         </a>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 w-full max-w-sm">
-          <h1 className="text-4xl font-black text-center mb-6">
-            Admin Login
-          </h1>
+          <h1 className="text-4xl font-black text-center mb-6">Admin Login</h1>
 
           <input
             type="password"
@@ -537,10 +533,12 @@ export default function AdminPage() {
     );
   }
 
-  const judgedPhotos = photos.filter((photo) => photo.photo_score !== null).length;
+  const judgedPhotos = photos.filter(
+    (photo) => photo.photo_score !== null,
+  ).length;
 
   const guestsWithoutTeam = guests.filter(
-    (guest) => guest.is_active !== false && !guest.rivieragames_team
+    (guest) => guest.is_active !== false && !guest.rivieragames_team,
   );
 
   const inactiveGuests = guests.filter((guest) => guest.is_active === false);
@@ -549,6 +547,52 @@ export default function AdminPage() {
   const smallestTeam = Math.min(...teamSizes);
   const largestTeam = Math.max(...teamSizes);
   const teamSizeDifference = largestTeam - smallestTeam;
+
+  const activeGuests = guests.filter(
+    (guest) => guest.is_active !== false,
+  ).length;
+
+  const secretMissionReadyCount = teamInfo.filter((team) => {
+    const mission = secretMissions.find((m) => m.team_name === team.name);
+
+    return Boolean(
+      mission?.actual_member &&
+      mission?.mission_text &&
+      mission.mission_text.trim().length > 0,
+    );
+  }).length;
+
+  const teamsWithDisplayNames = teamInfo.filter((team) => {
+    const custom = teamDisplayNames.find((row) => row.team === team.team);
+    return Boolean(
+      custom?.display_name && custom.display_name.trim().length > 0,
+    );
+  }).length;
+
+  const submittedPhotos = photos.length;
+  const quizTeamsSubmitted = new Set(quizAnswers.map((answer) => answer.team))
+    .size;
+  const drinkTeamsSubmitted = drinkAnswers.length;
+
+  const guestsStatusText = `${activeGuests} aktiva gäster • ${
+    teamSizeDifference <= 1
+      ? "Lagbalans OK"
+      : `Lagbalans +${teamSizeDifference}`
+  }`;
+
+  const secretMissionStatusText = `${secretMissionReadyCount}/4 uppdrag klara`;
+  const teamNamesStatusText = `${teamsWithDisplayNames}/4 lag har valt namn`;
+  const photosStatusText = `${judgedPhotos}/4 lagbilder bedömda • ${submittedPhotos}/4 uppladdade`;
+  const resultsStatusText = `${quizTeamsSubmitted}/4 quiz • ${drinkTeamsSubmitted}/4 dryck • ${judgedPhotos}/4 bilder`;
+  const resetStatusText = "Resetknappar och manuell uppdatering";
+
+  const guestsOk = guestsWithoutTeam.length === 0 && teamSizeDifference <= 1;
+  const secretMissionsOk = secretMissionReadyCount === 4;
+  const teamNamesOk = teamsWithDisplayNames === 4;
+  const photosOk = judgedPhotos === 4;
+
+  const overviewCardClass =
+    "text-left bg-zinc-900 border rounded-3xl p-4 hover:bg-zinc-800 transition-all";
 
   const leaderboard = teamInfo
     .map((team) => {
@@ -580,18 +624,90 @@ export default function AdminPage() {
 
         <RivieraHeader />
 
-        <h1 className="text-5xl font-black text-center mt-8 mb-10">
+        <h1 className="text-5xl font-black text-center mt-8 mb-6">
           🎛 ADMIN CENTER
         </h1>
 
+        <div className="grid md:grid-cols-3 gap-3 mb-8">
+          <button
+            onClick={() => setOpenSection("guests")}
+            className={`${overviewCardClass} ${
+              guestsOk ? "border-green-500" : "border-yellow-500"
+            }`}
+          >
+            <p className="text-sm text-gray-400 font-black uppercase mb-1">Förberedelser</p>
+            <p className="text-2xl font-black mb-1">👥 Gäster & Lag</p>
+            <p className={guestsOk ? "text-green-300 font-bold" : "text-yellow-300 font-bold"}>
+              {guestsStatusText}
+            </p>
+          </button>
+
+          <button
+            onClick={() => setOpenSection("secretMission")}
+            className={`${overviewCardClass} ${
+              secretMissionsOk ? "border-green-500" : "border-yellow-500"
+            }`}
+          >
+            <p className="text-sm text-gray-400 font-black uppercase mb-1">Hemligt Uppdrag</p>
+            <p className="text-2xl font-black mb-1">🎯 Uppdrag</p>
+            <p className={secretMissionsOk ? "text-green-300 font-bold" : "text-yellow-300 font-bold"}>
+              {secretMissionStatusText}
+            </p>
+          </button>
+
+          <button
+            onClick={() => setOpenSection("teamNames")}
+            className={`${overviewCardClass} ${
+              teamNamesOk ? "border-green-500" : "border-yellow-500"
+            }`}
+          >
+            <p className="text-sm text-gray-400 font-black uppercase mb-1">Före start</p>
+            <p className="text-2xl font-black mb-1">🏷 Lagnamn</p>
+            <p className={teamNamesOk ? "text-green-300 font-bold" : "text-yellow-300 font-bold"}>
+              {teamNamesStatusText}
+            </p>
+          </button>
+
+          <button
+            onClick={() => setOpenSection("photos")}
+            className={`${overviewCardClass} ${
+              photosOk ? "border-green-500" : "border-yellow-500"
+            }`}
+          >
+            <p className="text-sm text-gray-400 font-black uppercase mb-1">Under tävlingen</p>
+            <p className="text-2xl font-black mb-1">📸 Bilder</p>
+            <p className={photosOk ? "text-green-300 font-bold" : "text-yellow-300 font-bold"}>
+              {photosStatusText}
+            </p>
+          </button>
+
+          <button
+            onClick={() => setOpenSection("results")}
+            className={`${overviewCardClass} border-zinc-700`}
+          >
+            <p className="text-sm text-gray-400 font-black uppercase mb-1">Prisutdelning</p>
+            <p className="text-2xl font-black mb-1">🏆 Resultat & Final</p>
+            <p className="text-gray-300 font-bold">{resultsStatusText}</p>
+          </button>
+
+          <button
+            onClick={() => setOpenSection("reset")}
+            className={`${overviewCardClass} border-red-500/60`}
+          >
+            <p className="text-sm text-gray-400 font-black uppercase mb-1">Verktyg</p>
+            <p className="text-2xl font-black mb-1">⚙ Test & Reset</p>
+            <p className="text-red-300 font-bold">Använd med försiktighet</p>
+          </button>
+        </div>
+
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
           <SectionHeader
-            section="beforeParty"
-            title="🌴 Före festen"
-            description="Förbered gäster, lagindelning och Hemligt Uppdrag."
+            section="guests"
+            title="👥 Gäster & Lag"
+            description={guestsStatusText}
           />
 
-          {openSections.beforeParty && (
+          {openSection === "guests" && (
             <div className="mt-6">
               <div className="bg-zinc-800 rounded-3xl p-5 mb-6">
                 <h3 className="text-3xl font-black mb-4">👥 Gäster & lag</h3>
@@ -625,7 +741,10 @@ export default function AdminPage() {
                     const teamGuests = getGuestsForTeam(team.team);
 
                     return (
-                      <div key={team.team} className="bg-zinc-900 rounded-2xl p-4">
+                      <div
+                        key={team.team}
+                        className="bg-zinc-900 rounded-2xl p-4"
+                      >
                         <h4 className="text-xl font-black mb-2">
                           {display.icon} {display.displayName}
                         </h4>
@@ -647,7 +766,8 @@ export default function AdminPage() {
                 {guestsWithoutTeam.length > 0 && (
                   <div className="bg-red-500/10 border border-red-500 rounded-2xl p-4 mb-6">
                     <p className="text-red-300 font-black mb-2">
-                      ⚠️ Aktiva gäster utan Riviera Games-lag: {guestsWithoutTeam.length}
+                      ⚠️ Aktiva gäster utan Riviera Games-lag:{" "}
+                      {guestsWithoutTeam.length}
                     </p>
 
                     <div className="flex flex-wrap gap-2">
@@ -686,16 +806,16 @@ export default function AdminPage() {
                   onClick={() => setShowGuestEditor((current) => !current)}
                   className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
                 >
-                  {showGuestEditor ? "▼ Dölj gästredigering" : "▶ Redigera gäster"}
+                  {showGuestEditor
+                    ? "▼ Dölj gästredigering"
+                    : "▶ Redigera gäster"}
                 </button>
 
                 <button
                   onClick={() => setShowAddGuest((current) => !current)}
                   className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
                 >
-                  {showAddGuest
-                    ? "▼ Dölj Lägg till gäst"
-                    : "▶ Lägg till gäst"}
+                  {showAddGuest ? "▼ Dölj Lägg till gäst" : "▶ Lägg till gäst"}
                 </button>
 
                 <div
@@ -780,7 +900,9 @@ export default function AdminPage() {
                           </select>
 
                           <button
-                            onClick={() => updateGuestName(guest.id, guest.name)}
+                            onClick={() =>
+                              updateGuestName(guest.id, guest.name)
+                            }
                             disabled={guest.is_active === false}
                             className="px-4 py-3 rounded-2xl font-black bg-yellow-500 text-black disabled:opacity-40"
                           >
@@ -803,7 +925,7 @@ export default function AdminPage() {
                             onClick={() =>
                               updateGuestActive(
                                 guest.id,
-                                guest.is_active === false
+                                guest.is_active === false,
                               )
                             }
                             className={`px-4 py-3 rounded-2xl font-black ${
@@ -822,16 +944,25 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+        </section>
+        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
+          <SectionHeader
+            section="secretMission"
+            title="🎯 Hemligt Uppdrag"
+            description={secretMissionStatusText}
+          />
 
+          {openSection === "secretMission" && (
+            <div className="mt-6">
               <div className="bg-zinc-800 rounded-3xl p-5">
-                <h3 className="text-3xl font-black mb-6">
-                  🎯 Hemligt Uppdrag – Admin
-                </h3>
+                <h3 className="text-3xl font-black mb-4">🎯 Hemligt Uppdrag</h3>
 
                 <div className="grid md:grid-cols-2 gap-3 mb-6">
                   {teamInfo.map((team) => {
                     const mission = secretMissions.find(
-                      (m) => m.team_name === team.name
+                      (m) => m.team_name === team.name,
                     );
 
                     const ready =
@@ -860,7 +991,9 @@ export default function AdminPage() {
                 </div>
 
                 <button
-                  onClick={() => setShowSecretMissionEditor((current) => !current)}
+                  onClick={() =>
+                    setShowSecretMissionEditor((current) => !current)
+                  }
                   className="w-full bg-zinc-900 hover:bg-zinc-700 text-white font-black py-4 rounded-2xl mb-4 text-left px-5"
                 >
                   {showSecretMissionEditor
@@ -868,17 +1001,20 @@ export default function AdminPage() {
                     : "▶ Redigera Hemligt Uppdrag"}
                 </button>
 
-                <div className={`grid gap-5 ${showSecretMissionEditor ? "" : "hidden"}`}>
+                <div
+                  className={`grid gap-5 ${showSecretMissionEditor ? "" : "hidden"}`}
+                >
                   {teamInfo.map((team) => {
                     const display = getTeamDisplay(team.team);
                     const mission = secretMissions.find(
-                      (m) => m.team_name === team.name
+                      (m) => m.team_name === team.name,
                     );
 
                     const guessedMember = mission?.guessed_member;
                     const actualMember = mission?.actual_member;
                     const missionText = mission?.mission_text;
-                    const missionCompleted = mission?.mission_completed || false;
+                    const missionCompleted =
+                      mission?.mission_completed || false;
 
                     const hasGuessed = Boolean(guessedMember);
                     const hasActual = Boolean(actualMember);
@@ -894,11 +1030,14 @@ export default function AdminPage() {
                       !isCorrect;
 
                     const members = getGuestsForTeam(team.team).map(
-                      (guest) => guest.name
+                      (guest) => guest.name,
                     );
 
                     return (
-                      <div key={team.team} className="bg-zinc-900 rounded-3xl p-5">
+                      <div
+                        key={team.team}
+                        className="bg-zinc-900 rounded-3xl p-5"
+                      >
                         <h4 className="text-2xl font-black mb-5">
                           {display.icon} {display.displayName}
                         </h4>
@@ -925,7 +1064,7 @@ export default function AdminPage() {
                                 updateSecretMission(
                                   team.name,
                                   "actual_member",
-                                  e.target.value || null
+                                  e.target.value || null,
                                 )
                               }
                               className="w-full p-4 rounded-2xl bg-zinc-900 border border-zinc-700 text-white font-black text-xl"
@@ -952,7 +1091,7 @@ export default function AdminPage() {
                               updateSecretMission(
                                 team.name,
                                 "mission_text",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                             placeholder="Skriv vilket uppdrag lagmedlemmen har haft..."
@@ -971,7 +1110,7 @@ export default function AdminPage() {
                                 updateSecretMission(
                                   team.name,
                                   "mission_completed",
-                                  true
+                                  true,
                                 )
                               }
                               className={`p-4 rounded-2xl font-black text-xl ${
@@ -988,7 +1127,7 @@ export default function AdminPage() {
                                 updateSecretMission(
                                   team.name,
                                   "mission_completed",
-                                  false
+                                  false,
                                 )
                               }
                               className={`p-4 rounded-2xl font-black text-xl ${
@@ -1040,18 +1179,27 @@ export default function AdminPage() {
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
           <SectionHeader
-            section="beforeCompetition"
-            title="🏷 Innan tävlingen startar"
-            description="Lagen döper sitt lag och admin kan öppna lagnamns-sidan."
+            section="teamNames"
+            title="🏷 Lagnamn"
+            description={teamNamesStatusText}
           />
 
-          {openSections.beforeCompetition && (
+          {openSection === "teamNames" && (
             <div className="mt-6">
+              <div className="bg-zinc-800 rounded-3xl p-5 mb-4">
+                <h3 className="text-3xl font-black mb-2">🏷 Lagnamn</h3>
+                <p className="text-gray-400 font-bold">
+                  {teamsWithDisplayNames === 4
+                    ? "✅ Alla fyra lag har valt lagnamn."
+                    : `⚠️ ${teamsWithDisplayNames} av 4 lag har valt lagnamn.`}
+                </p>
+              </div>
+
               <a
                 href="/team-names"
                 className="block bg-yellow-400 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
               >
-                🏷️ Lagnamn
+                🏷️ Öppna lagnamnssidan
               </a>
             </div>
           )}
@@ -1059,12 +1207,12 @@ export default function AdminPage() {
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
           <SectionHeader
-            section="duringCompetition"
-            title="🎮 Under tävlingen"
-            description="Här hanteras det som sker medan lagen tävlar."
+            section="photos"
+            title="📸 Bilder"
+            description={photosStatusText}
           />
 
-          {openSections.duringCompetition && (
+          {openSection === "photos" && (
             <div className="mt-6">
               <div className="bg-zinc-800 rounded-3xl p-5 mb-6">
                 <h3 className="text-3xl font-black mb-3">
@@ -1078,7 +1226,9 @@ export default function AdminPage() {
                 </p>
 
                 {photos.length === 0 ? (
-                  <p className="text-gray-400">Inga lagbilder uppladdade ännu.</p>
+                  <p className="text-gray-400">
+                    Inga lagbilder uppladdade ännu.
+                  </p>
                 ) : (
                   <div className="grid md:grid-cols-2 gap-6">
                     {photos.map((photo) => {
@@ -1119,7 +1269,9 @@ export default function AdminPage() {
                                 return (
                                   <button
                                     key={score}
-                                    onClick={() => setPhotoScore(photo.id, score)}
+                                    onClick={() =>
+                                      setPhotoScore(photo.id, score)
+                                    }
                                     className={`p-4 rounded-2xl font-black text-xl transition-all ${
                                       active
                                         ? "bg-green-500 text-black scale-105"
@@ -1138,45 +1290,60 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+
+              <a
+                href="/party-gallery"
+                className="block bg-pink-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+              >
+                🖼️ Öppna Party Gallery
+              </a>
             </div>
           )}
         </section>
 
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
           <SectionHeader
-            section="final"
-            title="🏆 Prisutdelning & final"
-            description="Showlägen och totalställning inför finalen."
+            section="results"
+            title="🏆 Resultat & Final"
+            description={resultsStatusText}
           />
 
-          {openSections.final && (
+          {openSection === "results" && (
             <div className="mt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <a href="/photo-wall" className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
+                <a
+                  href="/quiz-reveal"
+                  className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+                >
+                  🧠 Quiz Reveal
+                </a>
+
+                <a
+                  href="/drink-reveal"
+                  className="bg-green-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+                >
+                  🍹 Dryckestest Reveal
+                </a>
+
+                <a
+                  href="/photo-wall"
+                  className="bg-purple-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+                >
                   📸 Lagbilder
                 </a>
 
                 <a
-                  href="/party-gallery"
-                  className="bg-pink-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
+                  href="/traitors-reveal"
+                  className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all"
                 >
-                  🖼️ Festgalleri
+                  🎯 Hemligt Uppdrag Reveal
                 </a>
 
-                <a href="/quiz-reveal" className="bg-blue-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  🧠 Quizresultat
-                </a>
-
-                <a href="/drink-reveal" className="bg-green-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  🍹 Dryckesresultat
-                </a>
-
-                <a href="/traitors-reveal" className="bg-red-600 text-white font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  🎯 Hemligt Uppdrag-resultat
-                </a>
-
-                <a href="/final" className="bg-yellow-500 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all">
-                  🎉 Final
+                <a
+                  href="/final"
+                  className="bg-yellow-500 text-black font-black py-4 rounded-2xl text-center hover:scale-105 transition-all md:col-span-2"
+                >
+                  🏆 Final
                 </a>
               </div>
             </div>
@@ -1186,33 +1353,51 @@ export default function AdminPage() {
         <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
           <SectionHeader
             section="reset"
-            title="🛠 Test & återställning"
-            description="Återställ enskilda moment eller hela tävlingen."
+            title="⚙ Test & Återställning"
+            description={resetStatusText}
           />
 
-          {openSections.reset && (
+          {openSection === "reset" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-              <button onClick={resetQuiz} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
+              <button
+                onClick={resetQuiz}
+                className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
+              >
                 Återställ quiz
               </button>
 
-              <button onClick={resetDrinks} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
+              <button
+                onClick={resetDrinks}
+                className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
+              >
                 Återställ dryckestest
               </button>
 
-              <button onClick={resetPhotos} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
+              <button
+                onClick={resetPhotos}
+                className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
+              >
                 Återställ bilder
               </button>
 
-              <button onClick={resetTraitors} className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black">
+              <button
+                onClick={resetTraitors}
+                className="bg-zinc-700 text-white px-4 py-4 rounded-2xl font-black"
+              >
                 Återställ Hemligt Uppdrag
               </button>
 
-              <button onClick={loadData} className="bg-zinc-800 text-white px-4 py-4 rounded-2xl font-black">
+              <button
+                onClick={loadData}
+                className="bg-zinc-800 text-white px-4 py-4 rounded-2xl font-black"
+              >
                 🔄 Uppdatera
               </button>
 
-              <button onClick={resetCompetition} className="bg-red-500 text-white px-4 py-4 rounded-2xl font-black">
+              <button
+                onClick={resetCompetition}
+                className="bg-red-500 text-white px-4 py-4 rounded-2xl font-black"
+              >
                 🗑 Återställ hela tävlingen
               </button>
             </div>
