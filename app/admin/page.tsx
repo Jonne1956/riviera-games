@@ -96,6 +96,12 @@ export default function AdminPage() {
   const [editedGuestNames, setEditedGuestNames] = useState<
     Record<number, string>
   >({});
+  const [missionTextDrafts, setMissionTextDrafts] = useState<
+    Record<string, string>
+  >({});
+  const [savingMissionTextTeams, setSavingMissionTextTeams] = useState<
+    Record<string, boolean>
+  >({});
 
   const [openSection, setOpenSection] = useState<SectionKey | null>("guests");
 
@@ -349,6 +355,45 @@ export default function AdminPage() {
       .from("secret_missions")
       .update({ [field]: value })
       .eq("team_name", teamName);
+
+    loadData();
+  }
+
+  async function saveSecretMissionText(
+    teamName: string,
+    currentValue: string | null | undefined,
+  ) {
+    const draft = missionTextDrafts[teamName];
+
+    if (draft === undefined || draft === (currentValue || "")) {
+      return;
+    }
+
+    setSavingMissionTextTeams((current) => ({
+      ...current,
+      [teamName]: true,
+    }));
+
+    const { error } = await supabase
+      .from("secret_missions")
+      .update({ mission_text: draft })
+      .eq("team_name", teamName);
+
+    setSavingMissionTextTeams((current) => ({
+      ...current,
+      [teamName]: false,
+    }));
+
+    if (error) {
+      alert(`Kunde inte spara uppdragstext: ${error.message}`);
+      return;
+    }
+
+    setMissionTextDrafts((current) => {
+      const updated = { ...current };
+      delete updated[teamName];
+      return updated;
+    });
 
     loadData();
   }
@@ -1112,17 +1157,29 @@ export default function AdminPage() {
                           </label>
 
                           <textarea
-                            value={missionText || ""}
+                            value={missionTextDrafts[team.name] ?? missionText ?? ""}
                             onChange={(e) =>
-                              updateSecretMission(
-                                team.name,
-                                "mission_text",
-                                e.target.value,
-                              )
+                              setMissionTextDrafts((current) => ({
+                                ...current,
+                                [team.name]: e.target.value,
+                              }))
+                            }
+                            onBlur={() =>
+                              saveSecretMissionText(team.name, missionText)
                             }
                             placeholder="Skriv vilket uppdrag lagmedlemmen har haft..."
                             className="w-full min-h-28 p-4 rounded-2xl bg-zinc-900 border border-zinc-700 text-white font-bold leading-relaxed"
                           />
+
+                          <p className="text-xs text-gray-400 mt-2">
+                            {savingMissionTextTeams[team.name]
+                              ? "Sparar uppdragstext..."
+                              : missionTextDrafts[team.name] !== undefined &&
+                                  missionTextDrafts[team.name] !==
+                                    (missionText || "")
+                                ? "Osparad ändring – sparas när du lämnar textfältet."
+                                : "Uppdragstexten sparas när du lämnar textfältet."}
+                          </p>
                         </div>
 
                         <div className="bg-zinc-800 rounded-2xl p-4 mb-4">

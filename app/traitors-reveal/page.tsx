@@ -32,6 +32,8 @@ const fallbackTeamNames: Record<string, TeamDisplayName> = {
   rod: { team: "rod", display_name: "Lag Röd", icon: "⛳" },
 };
 
+const REVEALED_TEAMS_STORAGE_KEY = "secret-mission-revealed-teams";
+
 export default function SecretMissionRevealPage() {
   const [missions, setMissions] = useState<SecretMission[]>([]);
   const [teamDisplayNames, setTeamDisplayNames] = useState<TeamDisplayName[]>([]);
@@ -62,6 +64,31 @@ export default function SecretMissionRevealPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const saved = localStorage.getItem(REVEALED_TEAMS_STORAGE_KEY);
+
+    if (!saved) return;
+
+    try {
+      setRevealedTeams(JSON.parse(saved));
+    } catch {
+      localStorage.removeItem(REVEALED_TEAMS_STORAGE_KEY);
+    }
+  }, []);
+
+  function markTeamAsRevealed(team: string) {
+    setRevealedTeams((current) => {
+      const updated = {
+        ...current,
+        [team]: true,
+      };
+
+      localStorage.setItem(REVEALED_TEAMS_STORAGE_KEY, JSON.stringify(updated));
+
+      return updated;
+    });
+  }
+
   function getTeamDisplay(team: string) {
     return (
       teamDisplayNames.find((row) => row.team === team) ||
@@ -87,6 +114,12 @@ export default function SecretMissionRevealPage() {
       .update({ mission_completed: completed })
       .eq("team_name", teamName);
 
+    const team = teams.find((item) => item.name === teamName);
+
+    if (team) {
+      markTeamAsRevealed(team.team);
+    }
+
     await loadData();
     setStep(6);
   }
@@ -101,10 +134,7 @@ export default function SecretMissionRevealPage() {
     if (selectedTeamIndex !== null) {
       const team = teams[selectedTeamIndex];
 
-      setRevealedTeams((current) => ({
-        ...current,
-        [team.team]: true,
-      }));
+      markTeamAsRevealed(team.team);
     }
 
     setSelectedTeamIndex(null);
@@ -226,7 +256,10 @@ export default function SecretMissionRevealPage() {
               const display = getTeamDisplay(team.team);
               const mission = getMissionForTeam(team.name);
 
-              const isRevealed = Boolean(revealedTeams[team.team]);
+              const isRevealed =
+                Boolean(revealedTeams[team.team]) &&
+                Boolean(mission?.actual_member) &&
+                Boolean(mission?.mission_text);
 
               const isCorrect =
                 Boolean(mission?.guessed_member) &&
