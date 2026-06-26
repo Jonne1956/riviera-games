@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import RivieraHeader from "@/app/components/RivieraHeader";
 import { questions } from "@/app/data/quizQuestions";
 
 type QuizAnswer = {
@@ -118,18 +117,19 @@ export default function AdminPage() {
     return (
       <button
         onClick={() => toggleSection(section)}
-        className="w-full text-left flex items-center justify-between gap-4 rounded-2xl hover:bg-zinc-800/60 transition-all"
+        aria-label={`${title} – ${description}`}
+        className="w-full text-left flex items-center justify-between gap-4"
       >
-        <div className="py-1">
-          <h2 className="text-3xl md:text-4xl font-black mb-2">
-            {isOpen ? "▼" : "▶"} {title}
+        <div className="flex items-center gap-4 min-w-0">
+          <span className="text-2xl md:text-3xl font-black text-white">
+            {isOpen ? "▼" : "▶"}
+          </span>
+          <h2 className="text-2xl md:text-3xl font-black whitespace-nowrap">
+            {title}
           </h2>
-          <p className="inline-block bg-zinc-800 border border-zinc-700 rounded-full px-4 py-2 text-sm md:text-base text-gray-300 font-bold">
-            {description}
-          </p>
         </div>
 
-        <div className="text-4xl font-black text-yellow-400 shrink-0">
+        <div className="text-4xl font-black text-yellow-400">
           {isOpen ? "−" : "+"}
         </div>
       </button>
@@ -591,8 +591,22 @@ export default function AdminPage() {
   const teamNamesOk = teamsWithDisplayNames === 4;
   const photosOk = judgedPhotos === 4;
 
+  const quizComplete = teamInfo.every((team) =>
+    quizAnswers.filter((answer) => answer.team === team.team).length >= questions.length,
+  );
+  const drinksComplete = teamInfo.every((team) =>
+    drinkAnswers.some((answer) => answer.team === team.team),
+  );
+  const completedResultMoments = [
+    quizComplete,
+    drinksComplete,
+    photosOk,
+    secretMissionsOk,
+  ].filter(Boolean).length;
+  const resultsComplete = completedResultMoments === 4;
+
   const overviewCardClass =
-    "text-left bg-zinc-900 border rounded-3xl p-4 hover:bg-zinc-800 transition-all";
+    "text-left bg-zinc-900 border border-zinc-800 rounded-2xl p-5 hover:bg-zinc-800 transition-all";
 
   const leaderboard = teamInfo
     .map((team) => {
@@ -615,92 +629,104 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-black text-white p-6">
       <div className="max-w-6xl mx-auto pt-8">
-        <a
-          href="/control-center"
-          className="inline-block bg-zinc-900 hover:bg-zinc-800 border border-yellow-400 text-yellow-400 font-black px-5 py-3 rounded-2xl mb-6"
-        >
-          ← Control Center
-        </a>
-
-        <RivieraHeader />
-
-        <h1 className="text-5xl font-black text-center mt-8 mb-6">
-          🎛 ADMIN CENTER
-        </h1>
-
-        <div className="grid md:grid-cols-3 gap-3 mb-8">
-          <button
-            onClick={() => setOpenSection("guests")}
-            className={`${overviewCardClass} ${
-              guestsOk ? "border-green-500" : "border-yellow-500"
-            }`}
-          >
-            <p className="text-sm text-gray-400 font-black uppercase mb-1">Förberedelser</p>
-            <p className="text-2xl font-black mb-1">👥 Gäster & Lag</p>
-            <p className={guestsOk ? "text-green-300 font-bold" : "text-yellow-300 font-bold"}>
-              {guestsStatusText}
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-7">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-4xl">🌴</span>
+              <h1 className="text-3xl md:text-4xl font-black text-yellow-400">
+                RIVIERA GAMES
+              </h1>
+            </div>
+            <p className="text-gray-400 text-lg md:text-xl">
+              Riviera Pool Party – Lasse LXX
             </p>
+          </div>
+
+          <a
+            href="/control-center"
+            className="self-start bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white font-black px-5 py-3 rounded-2xl"
+          >
+            ↗ Öppna Control Center
+          </a>
+        </div>
+
+        <div className="grid md:grid-cols-4 gap-4 mb-4 border-b border-zinc-800 pb-4">
+          <button onClick={() => setOpenSection("guests")} className={overviewCardClass}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl">👥</span>
+                <div>
+                  <p className="text-3xl font-black">{activeGuests}</p>
+                  <p className="text-gray-300 font-bold">gäster</p>
+                </div>
+              </div>
+              <span className="bg-green-500 text-black rounded-full px-3 py-1 text-sm font-black">OK</span>
+            </div>
           </button>
 
-          <button
-            onClick={() => setOpenSection("secretMission")}
-            className={`${overviewCardClass} ${
-              secretMissionsOk ? "border-green-500" : "border-yellow-500"
-            }`}
-          >
-            <p className="text-sm text-gray-400 font-black uppercase mb-1">Hemligt Uppdrag</p>
-            <p className="text-2xl font-black mb-1">🎯 Uppdrag</p>
-            <p className={secretMissionsOk ? "text-green-300 font-bold" : "text-yellow-300 font-bold"}>
-              {secretMissionStatusText}
-            </p>
+          <button onClick={() => setOpenSection("secretMission")} className={overviewCardClass}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl">🎯</span>
+                <div>
+                  <p className="text-3xl font-black">{secretMissionReadyCount} / 4</p>
+                  <p className="text-gray-300 font-bold">klara</p>
+                </div>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-sm font-black ${secretMissionsOk ? "bg-green-500 text-black" : "bg-yellow-400 text-black"}`}>
+                {secretMissionsOk ? "OK" : "0%"}
+              </span>
+            </div>
           </button>
 
-          <button
-            onClick={() => setOpenSection("teamNames")}
-            className={`${overviewCardClass} ${
-              teamNamesOk ? "border-green-500" : "border-yellow-500"
-            }`}
-          >
-            <p className="text-sm text-gray-400 font-black uppercase mb-1">Före start</p>
-            <p className="text-2xl font-black mb-1">🏷 Lagnamn</p>
-            <p className={teamNamesOk ? "text-green-300 font-bold" : "text-yellow-300 font-bold"}>
-              {teamNamesStatusText}
-            </p>
+          <button onClick={() => setOpenSection("photos")} className={overviewCardClass}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl">📸</span>
+                <div>
+                  <p className="text-3xl font-black">{judgedPhotos} / 4</p>
+                  <p className="text-gray-300 font-bold">bilder</p>
+                </div>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-sm font-black ${photosOk ? "bg-green-500 text-black" : "bg-yellow-400 text-black"}`}>
+                {photosOk ? "OK" : "25%"}
+              </span>
+            </div>
           </button>
 
-          <button
-            onClick={() => setOpenSection("photos")}
-            className={`${overviewCardClass} ${
-              photosOk ? "border-green-500" : "border-yellow-500"
-            }`}
-          >
-            <p className="text-sm text-gray-400 font-black uppercase mb-1">Under tävlingen</p>
-            <p className="text-2xl font-black mb-1">📸 Bilder</p>
-            <p className={photosOk ? "text-green-300 font-bold" : "text-yellow-300 font-bold"}>
-              {photosStatusText}
-            </p>
-          </button>
-
-          <button
-            onClick={() => setOpenSection("results")}
-            className={`${overviewCardClass} border-zinc-700`}
-          >
-            <p className="text-sm text-gray-400 font-black uppercase mb-1">Prisutdelning</p>
-            <p className="text-2xl font-black mb-1">🏆 Resultat & Final</p>
-            <p className="text-gray-300 font-bold">{resultsStatusText}</p>
-          </button>
-
-          <button
-            onClick={() => setOpenSection("reset")}
-            className={`${overviewCardClass} border-red-500/60`}
-          >
-            <p className="text-sm text-gray-400 font-black uppercase mb-1">Verktyg</p>
-            <p className="text-2xl font-black mb-1">⚙ Test & Reset</p>
-            <p className="text-red-300 font-bold">Använd med försiktighet</p>
+          <button onClick={() => setOpenSection("results")} className={overviewCardClass}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl">🏆</span>
+                <div>
+                  <p className="text-2xl md:text-3xl font-black">
+                    {resultsComplete ? "Resultat klara" : "Resultat & Final"}
+                  </p>
+                  <p className="text-gray-300 font-bold">
+                    {resultsComplete
+                      ? "Alla moment färdiga"
+                      : `${completedResultMoments} av 4 moment klara`}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`rounded-full px-3 py-1 text-sm font-black ${
+                  resultsComplete
+                    ? "bg-green-500 text-black"
+                    : "bg-yellow-400 text-black"
+                }`}
+              >
+                {resultsComplete ? "OK" : "Pågår"}
+              </span>
+            </div>
           </button>
         </div>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
+        <p className="text-gray-400 mb-5">
+          ⓘ Klicka på en sektion nedan för att öppna
+        </p>
+
+        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl px-5 py-4 mb-3">
           <SectionHeader
             section="guests"
             title="👥 Gäster & Lag"
@@ -947,7 +973,7 @@ export default function AdminPage() {
             </div>
           )}
         </section>
-        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
+        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl px-5 py-4 mb-3">
           <SectionHeader
             section="secretMission"
             title="🎯 Hemligt Uppdrag"
@@ -1177,7 +1203,7 @@ export default function AdminPage() {
           )}
         </section>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
+        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl px-5 py-4 mb-3">
           <SectionHeader
             section="teamNames"
             title="🏷 Lagnamn"
@@ -1205,7 +1231,7 @@ export default function AdminPage() {
           )}
         </section>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
+        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl px-5 py-4 mb-3">
           <SectionHeader
             section="photos"
             title="📸 Bilder"
@@ -1301,7 +1327,7 @@ export default function AdminPage() {
           )}
         </section>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-5">
+        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl px-5 py-4 mb-3">
           <SectionHeader
             section="results"
             title="🏆 Resultat & Final"
@@ -1350,7 +1376,7 @@ export default function AdminPage() {
           )}
         </section>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
+        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl px-5 py-4 mb-3">
           <SectionHeader
             section="reset"
             title="⚙ Test & Återställning"
@@ -1403,6 +1429,9 @@ export default function AdminPage() {
             </div>
           )}
         </section>
+        <p className="text-center text-gray-400 mt-6 mb-2">
+          Auto-sparat <span className="text-green-400">•</span> Senast uppdaterad just nu
+        </p>
       </div>
     </main>
   );
