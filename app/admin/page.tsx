@@ -103,7 +103,7 @@ export default function AdminPage() {
     Record<string, boolean>
   >({});
 
-  const [openSection, setOpenSection] = useState<SectionKey | null>("guests");
+  const [openSection, setOpenSection] = useState<SectionKey | null>(null);
 
   function toggleSection(section: SectionKey) {
     setOpenSection((current) => (current === section ? null : section));

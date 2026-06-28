@@ -37,6 +37,7 @@ function getOptionText(question: any, answerKey: string | undefined) {
 
 export default function QuizRevealPage() {
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
+  const [openTeam, setOpenTeam] = useState<string | null>(null);
 
   async function loadAnswers() {
     const { data } = await supabase.from("quiz_answers").select("*");
@@ -51,6 +52,10 @@ export default function QuizRevealPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  function toggleTeam(team: string) {
+    setOpenTeam((current) => (current === team ? null : team));
+  }
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
@@ -68,8 +73,10 @@ export default function QuizRevealPage() {
           🧠 QUIZ REVEAL
         </h1>
 
-        <div className="grid gap-8">
+        <div className="grid gap-5">
           {Object.keys(teamNames).map((team) => {
+            const isOpen = openTeam === team;
+
             const teamAnswers = answers.filter(
               (answer) => answer.team === team
             );
@@ -87,109 +94,116 @@ export default function QuizRevealPage() {
                 key={team}
                 className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6"
               >
-                <div
-                  className={`${teamColors[team]} rounded-2xl px-5 py-3 inline-block mb-6`}
-                >
-                  <h2 className="text-3xl font-black uppercase">
-                    Lag {teamNames[team]} — {score}/{questions.length}
-                  </h2>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div
+                    className={`${teamColors[team]} rounded-2xl px-5 py-3 inline-block`}
+                  >
+                    <h2 className="text-3xl font-black uppercase">
+                      Lag {teamNames[team]} — {score}/{questions.length}
+                    </h2>
+                  </div>
+
+                  <button
+                    onClick={() => toggleTeam(team)}
+                    className="bg-yellow-400 hover:bg-yellow-300 text-black px-6 py-4 rounded-2xl font-black text-xl transition-all"
+                  >
+                    {isOpen ? "▼ Dölj resultat" : "▶ Visa resultat"}
+                  </button>
                 </div>
 
-                <div className="grid gap-3">
-                  {questions.map((question) => {
-                    const answer = teamAnswers.find(
-                      (a) => a.question_id === question.id
-                    );
+                {isOpen && (
+                  <div className="grid gap-3 mt-6">
+                    {questions.map((question) => {
+                      const answer = teamAnswers.find(
+                        (a) => a.question_id === question.id
+                      );
 
-                    const isCorrect =
-                      answer?.answer === question.correctAnswer;
+                      const isCorrect =
+                        answer?.answer === question.correctAnswer;
 
-                    const teamAnswerText = getOptionText(
-                      question,
-                      answer?.answer
-                    );
+                      const teamAnswerText = getOptionText(
+                        question,
+                        answer?.answer
+                      );
 
-                    const correctAnswerText = getOptionText(
-                      question,
-                      question.correctAnswer
-                    );
+                      const correctAnswerText = getOptionText(
+                        question,
+                        question.correctAnswer
+                      );
 
-                    return (
-                      <div
-                        key={question.id}
-                        className={`p-4 rounded-2xl border ${
-                          !answer
-                            ? "bg-zinc-800 border-zinc-700 text-gray-400"
-                            : isCorrect
-                            ? "bg-green-950 border-green-600 text-green-100"
-                            : "bg-red-950 border-red-600 text-red-100"
-                        }`}
-                      >
-                        <div className="flex justify-between gap-4 mb-2">
-                          <p className="text-sm uppercase opacity-70 font-bold">
-                            Fråga {question.id}
-                          </p>
-
-                          <p className="text-sm font-black">
-                            {!answer
-                              ? "Ej svarad"
+                      return (
+                        <div
+                          key={question.id}
+                          className={`p-4 rounded-2xl border ${
+                            !answer
+                              ? "bg-zinc-800 border-zinc-700 text-gray-400"
                               : isCorrect
-                              ? "✅ Rätt"
-                              : "❌ Fel"}
+                              ? "bg-green-950 border-green-600 text-green-100"
+                              : "bg-red-950 border-red-600 text-red-100"
+                          }`}
+                        >
+                          <div className="flex justify-between gap-4 mb-2">
+                            <p className="text-sm uppercase opacity-70 font-bold">
+                              Fråga {question.id}
+                            </p>
+
+                            <p className="text-sm font-black">
+                              {!answer
+                                ? "Ej svarad"
+                                : isCorrect
+                                ? "✅ Rätt"
+                                : "❌ Fel"}
+                            </p>
+                          </div>
+
+                          <p className="text-base font-semibold mb-4">
+                            {question.text}
                           </p>
-                        </div>
 
-                        <p className="text-base font-semibold mb-4">
-                          {question.text}
-                        </p>
+                          <div className="bg-black/20 rounded-2xl p-4 mb-4">
+                            <p className="text-xs uppercase font-black opacity-70 mb-2">
+                              Svarsalternativ
+                            </p>
 
-                        <div className="bg-black/20 rounded-2xl p-4 mb-4">
-                          <p className="text-xs uppercase font-black opacity-70 mb-2">
-                            Svarsalternativ
-                          </p>
+                            <div className="grid gap-2 text-sm">
+                              {question.options.map((option: string) => {
+                                const isCorrectOption = option.startsWith(
+                                  `${question.correctAnswer} —`
+                                );
 
-                          <div className="grid gap-2 text-sm">
-                            {question.options.map((option: string) => {
-                              const isCorrectOption = option.startsWith(
-                                `${question.correctAnswer} —`
-                              );
+                                return (
+                                  <p
+                                    key={option}
+                                    className={`font-bold ${
+                                      isCorrectOption
+                                        ? "text-yellow-400"
+                                        : "opacity-90"
+                                    }`}
+                                  >
+                                    {isCorrectOption ? "⭐ " : ""}
+                                    {option}
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          </div>
 
-                              return (
-                                <p
-                                  key={option}
-                                  className={`font-bold ${
-                                    isCorrectOption
-                                      ? "text-yellow-400"
-                                      : "opacity-90"
-                                  }`}
-                                >
-                                  {isCorrectOption ? "⭐ " : ""}
-                                  {option}
-                                </p>
-                              );
-                            })}
+                          <div className="text-sm space-y-1">
+                            <p>
+                              <span className="font-bold">Lagets svar:</span>{" "}
+                              {teamAnswerText}
+                            </p>
+
+                            <p>
+                              <span className="font-bold">Rätt svar:</span>{" "}
+                              {correctAnswerText}
+                            </p>
                           </div>
                         </div>
-
-                        <div className="text-sm space-y-1">
-                          <p>
-                            <span className="font-bold">
-                              Lagets svar:
-                            </span>{" "}
-                            {teamAnswerText}
-                          </p>
-
-                          <p>
-                            <span className="font-bold">
-                              Rätt svar:
-                            </span>{" "}
-                            {correctAnswerText}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
             );
           })}

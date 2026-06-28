@@ -23,19 +23,32 @@ export default function TeamNamesPage() {
   const [teams, setTeams] = useState<TeamName[]>([]);
   const [saved, setSaved] = useState(false);
   const [resetDone, setResetDone] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savingTeam, setSavingTeam] = useState<string | null>(null);
 
   async function loadTeams() {
-    const { data } = await supabase.from("team_display_names").select("*");
+    const { data, error } = await supabase
+      .from("team_display_names")
+      .select("*");
 
-    if (data && data.length > 0) {
-      const sorted = teamOrder.map(
-        (team) => data.find((row) => row.team === team) || fallbackNames[team]
-      );
-
-      setTeams(sorted);
-    } else {
-      setTeams(teamOrder.map((team) => fallbackNames[team]));
+    if (error) {
+      console.error("Kunde inte ladda lagnamn:", error);
+      alert(`Kunde inte ladda lagnamn: ${error.message}`);
+      return;
     }
+
+    const sorted = teamOrder.map((team) => {
+      const savedTeam = data?.find((row) => row.team === team);
+
+      return {
+        team,
+        display_name:
+          savedTeam?.display_name || fallbackNames[team].display_name,
+        icon: savedTeam?.icon || fallbackNames[team].icon,
+      };
+    });
+
+    setTeams(sorted);
   }
 
   useEffect(() => {
@@ -55,39 +68,91 @@ export default function TeamNamesPage() {
     setResetDone(false);
   }
 
-  async function saveNames() {
-    for (const team of teams) {
-      await supabase
-        .from("team_display_names")
-        .update({
-          display_name:
-            team.display_name || fallbackNames[team.team].display_name,
-          icon: team.icon,
-        })
-        .eq("team", team.team);
+  async function saveOneTeam(team: TeamName) {
+    const cleanedName =
+      team.display_name.trim() || fallbackNames[team.team].display_name;
+
+    setSavingTeam(team.team);
+
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("team_display_names")
+      .update({
+        display_name: cleanedName,
+        icon: team.icon || fallbackNames[team.team].icon,
+      })
+      .eq("team", team.team)
+      .select();
+
+    if (updateError) {
+      setSavingTeam(null);
+      console.error("Kunde inte uppdatera lagnamn:", updateError);
+      alert(`Kunde inte uppdatera lagnamn: ${updateError.message}`);
+      return false;
     }
 
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertError } = await supabase
+        .from("team_display_names")
+        .insert({
+          team: team.team,
+          display_name: cleanedName,
+          icon: team.icon || fallbackNames[team.team].icon,
+        });
+
+      if (insertError) {
+        setSavingTeam(null);
+        console.error("Kunde inte skapa lagnamn:", insertError);
+        alert(`Kunde inte skapa lagnamn: ${insertError.message}`);
+        return false;
+      }
+    }
+
+    setTeams((current) =>
+      current.map((row) =>
+        row.team === team.team ? { ...row, display_name: cleanedName } : row
+      )
+    );
+
+    setSavingTeam(null);
+    return true;
+  }
+
+  async function saveNames() {
+    setIsSaving(true);
+
+    for (const team of teams) {
+      const ok = await saveOneTeam(team);
+
+      if (!ok) {
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    setIsSaving(false);
     setSaved(true);
     setResetDone(false);
-    loadTeams();
+    await loadTeams();
   }
 
   async function resetNames() {
     if (!confirm("Återställa till ursprungliga lagnamn?")) return;
 
+    setIsSaving(true);
+
     for (const team of teamOrder) {
-      await supabase
-        .from("team_display_names")
-        .update({
-          display_name: fallbackNames[team].display_name,
-          icon: fallbackNames[team].icon,
-        })
-        .eq("team", team);
+      const ok = await saveOneTeam(fallbackNames[team]);
+
+      if (!ok) {
+        setIsSaving(false);
+        return;
+      }
     }
 
+    setIsSaving(false);
     setSaved(false);
     setResetDone(true);
-    loadTeams();
+    await loadTeams();
   }
 
   return (
@@ -131,28 +196,39 @@ export default function TeamNamesPage() {
               <input
                 value={team.display_name}
                 onChange={(e) => updateName(team.team, e.target.value)}
+                onBlur={() => saveOneTeam(team)}
                 maxLength={24}
                 className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 text-white font-bold text-xl"
                 placeholder={fallbackNames[team.team].display_name}
               />
 
-              <p className="text-right text-xs text-gray-500 mt-2">
-                {team.display_name.length}/24
-              </p>
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-gray-500">
+                  {savingTeam === team.team
+                    ? "Sparar..."
+                    : "Sparas automatiskt när du lämnar fältet."}
+                </p>
+
+                <p className="text-xs text-gray-500">
+                  {team.display_name.length}/24
+                </p>
+              </div>
             </div>
           ))}
         </div>
 
         <button
           onClick={saveNames}
-          className="w-full mt-8 bg-yellow-400 text-black p-5 rounded-3xl font-black text-xl hover:scale-105 transition-all"
+          disabled={isSaving}
+          className="w-full mt-8 bg-yellow-400 text-black p-5 rounded-3xl font-black text-xl hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
         >
-          Spara lagnamn
+          {isSaving ? "Sparar..." : "Spara alla lagnamn"}
         </button>
 
         <button
           onClick={resetNames}
-          className="w-full mt-4 bg-zinc-800 text-white p-5 rounded-3xl font-black text-xl hover:scale-105 transition-all"
+          disabled={isSaving}
+          className="w-full mt-4 bg-zinc-800 text-white p-5 rounded-3xl font-black text-xl hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
         >
           Återställ ursprungliga lagnamn
         </button>
