@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "🌴 Riviera Control Center",
-    template: "%s | Riviera",
+    default: "🌴 Riviera Games",
+    template: "%s | Riviera Games",
   },
   description: "Riviera Games",
 };
