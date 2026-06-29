@@ -80,6 +80,30 @@ export default function ControlCenterPage() {
               </a>
             </div>
           </div>
+
+          <div className="bg-zinc-950 text-white rounded-3xl p-6 shadow-xl border-4 border-cyan-300 md:col-span-2">
+            <h2 className="text-3xl font-black mb-3">🎧 Music Program</h2>
+
+            <p className="font-bold mb-5 text-cyan-100">
+              Spotify playlists, live music, breaks and special music moments.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="bg-white/10 border-2 border-white/20 rounded-2xl p-4 text-center">
+                <p className="text-xl font-black text-cyan-200">
+                  Music Program Admin
+                </p>
+                <p className="font-bold text-white/70 mt-1">Coming soon</p>
+              </div>
+
+              <div className="bg-white/10 border-2 border-white/20 rounded-2xl p-4 text-center">
+                <p className="text-xl font-black text-cyan-200">
+                  DJ Console Preview
+                </p>
+                <p className="font-bold text-white/70 mt-1">Coming soon</p>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>
