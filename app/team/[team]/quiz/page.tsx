@@ -68,6 +68,16 @@ export default function QuizOverviewPage() {
 
   const allDone = answeredQuestions.length === questions.length;
 
+  const unansweredQuestions = questions.filter(
+    (question) => !answeredQuestions.includes(question.id)
+  );
+
+  const completedQuestions = questions.filter((question) =>
+    answeredQuestions.includes(question.id)
+  );
+
+  const sortedQuestions = [...unansweredQuestions, ...completedQuestions];
+
   return (
     <main className="min-h-screen bg-black text-white p-6">
       <div className="max-w-md mx-auto pt-6">
@@ -90,11 +100,11 @@ export default function QuizOverviewPage() {
         </div>
 
         <p className="text-gray-400 text-center mb-8">
-          Välj fråga. Ni kan ta frågorna i valfri ordning.
+          Välj fråga. Obesvarade frågor visas överst.
         </p>
 
         <div className="grid gap-3">
-          {questions.map((question) => {
+          {sortedQuestions.map((question) => {
             const isAnswered = answeredQuestions.includes(question.id);
 
             return (
@@ -103,7 +113,7 @@ export default function QuizOverviewPage() {
                 href={`/team/${team}/quiz/${question.id}`}
                 className={`p-4 rounded-2xl font-bold text-lg flex justify-between items-center ${
                   isAnswered
-                    ? "bg-green-500 text-black"
+                    ? "bg-green-500 text-black opacity-90"
                     : "bg-zinc-900 text-white border border-zinc-800"
                 }`}
               >
@@ -113,6 +123,12 @@ export default function QuizOverviewPage() {
             );
           })}
         </div>
+
+        {completedQuestions.length > 0 && !allDone && (
+          <p className="text-gray-500 text-center font-bold mt-5">
+            Klara frågor flyttas längst ner i listan.
+          </p>
+        )}
 
         {allDone && (
           <div className="mt-8 bg-yellow-400 text-black p-6 rounded-3xl text-center">
