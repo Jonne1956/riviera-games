@@ -46,6 +46,12 @@ export default function DrinksPage() {
 
   const display = teamDisplay || fallback;
 
+  const selectedDrinks = [drink1, drink2, drink3, drink4].filter(Boolean);
+
+  function isDrinkAlreadySelected(drink: string, currentValue: string) {
+    return drink !== currentValue && selectedDrinks.includes(drink);
+  }
+
   useEffect(() => {
     async function loadData() {
       const { data: submissionData } = await supabase
@@ -75,6 +81,13 @@ export default function DrinksPage() {
   async function submitAnswers() {
     if (!drink1 || !drink2 || !drink3 || !drink4) {
       alert("Välj svar för alla fyra drycker.");
+      return;
+    }
+
+    const uniqueDrinks = new Set([drink1, drink2, drink3, drink4]);
+
+    if (uniqueDrinks.size < 4) {
+      alert("Samma dryck kan bara väljas en gång. Kontrollera era svar.");
       return;
     }
 
@@ -114,9 +127,7 @@ export default function DrinksPage() {
               Dryckestest redan inskickat
             </h1>
 
-            <p className="font-black text-xl">
-              {display.display_name}
-            </p>
+            <p className="font-black text-xl">{display.display_name}</p>
 
             <p className="font-bold opacity-80 mt-1">
               {fallback.display_name}
@@ -150,9 +161,7 @@ export default function DrinksPage() {
             Moment 2
           </p>
 
-          <h1 className="text-4xl font-black mt-2">
-            Dryckestest
-          </h1>
+          <h1 className="text-4xl font-black mt-2">Dryckestest</h1>
 
           <p className="text-yellow-400 font-black mt-2">
             {display.display_name}
@@ -215,8 +224,15 @@ export default function DrinksPage() {
                   <option value="">Välj dryck</option>
 
                   {drinkOptions.map((drink) => (
-                    <option key={drink} value={drink}>
+                    <option
+                      key={drink}
+                      value={drink}
+                      disabled={isDrinkAlreadySelected(drink, value)}
+                    >
                       {drink}
+                      {isDrinkAlreadySelected(drink, value)
+                        ? " – redan vald"
+                        : ""}
                     </option>
                   ))}
                 </select>

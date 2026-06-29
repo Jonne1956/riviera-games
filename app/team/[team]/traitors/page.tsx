@@ -31,6 +31,7 @@ export default function SecretMissionPage() {
 
   const [members, setMembers] = useState<string[]>([]);
   const [selectedName, setSelectedName] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -74,6 +75,15 @@ export default function SecretMissionPage() {
 
     loadData();
   }, [team, teamNameForDb]);
+
+  function chooseName(name: string) {
+    setSelectedName(name);
+    setShowConfirmation(true);
+  }
+
+  function chooseAnotherName() {
+    setShowConfirmation(false);
+  }
 
   async function submitVote() {
     if (!selectedName) {
@@ -154,6 +164,58 @@ export default function SecretMissionPage() {
     );
   }
 
+  if (showConfirmation && selectedName) {
+    return (
+      <main className="min-h-screen bg-black text-white p-6">
+        <div className="max-w-md mx-auto pt-6">
+          <RivieraHeader />
+
+          <div className="mt-10 bg-yellow-400 text-black p-8 rounded-3xl text-center border-4 border-yellow-200 shadow-2xl">
+            <p className="text-5xl mb-2">{display.icon}</p>
+
+            <p className="font-black text-xl mb-1">{display.display_name}</p>
+
+            <p className="font-bold opacity-80 mb-6">
+              {fallback.display_name}
+            </p>
+
+            <p className="text-5xl mb-4">🎭</p>
+
+            <p className="font-black uppercase tracking-wide text-sm">
+              Ni har valt
+            </p>
+
+            <h1 className="text-5xl font-black mt-2 mb-5">{selectedName}</h1>
+
+            <p className="text-xl font-black leading-snug">
+              Är ni säkra på att detta är er slutgiltiga gissning?
+            </p>
+
+            <p className="font-bold mt-4 opacity-80">
+              Ni har bara ett försök.
+            </p>
+          </div>
+
+          <button
+            onClick={submitVote}
+            disabled={submitting}
+            className="w-full mt-6 p-5 rounded-3xl bg-yellow-400 text-black font-black text-xl hover:scale-105 transition disabled:opacity-50 disabled:hover:scale-100"
+          >
+            {submitting ? "Skickar..." : "✅ Ja, skicka gissningen"}
+          </button>
+
+          <button
+            onClick={chooseAnotherName}
+            disabled={submitting}
+            className="w-full mt-4 p-4 rounded-2xl bg-zinc-800 text-white font-bold disabled:opacity-50"
+          >
+            Nej, välj en annan person
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-black text-white p-6">
       <div className="max-w-md mx-auto pt-6">
@@ -177,7 +239,7 @@ export default function SecretMissionPage() {
           </p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8 text-center">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-6 text-center">
           <p className="text-lg text-gray-300 font-bold leading-relaxed">
             Någon i ert lag har haft ett hemligt uppdrag under tävlingen.
           </p>
@@ -187,7 +249,7 @@ export default function SecretMissionPage() {
           </p>
 
           <p className="text-gray-400 font-bold mt-5">
-            Ni har bara ett försök.
+            Tryck på ett namn för att gå vidare till bekräftelse.
           </p>
         </div>
 
@@ -207,26 +269,18 @@ export default function SecretMissionPage() {
             {members.map((name) => (
               <button
                 key={name}
-                onClick={() => setSelectedName(name)}
+                onClick={() => chooseName(name)}
                 className={`p-4 rounded-2xl font-black text-xl border transition-all ${
                   selectedName === name
                     ? "bg-yellow-400 text-black border-yellow-400 scale-105"
                     : "bg-zinc-900 text-white border-zinc-800"
                 }`}
               >
-                {name}
+                {selectedName === name ? `✅ ${name}` : name}
               </button>
             ))}
           </div>
         )}
-
-        <button
-          onClick={submitVote}
-          disabled={submitting || members.length === 0}
-          className="w-full mt-8 p-5 rounded-3xl bg-yellow-400 text-black font-black text-xl hover:scale-105 transition disabled:opacity-50 disabled:hover:scale-100"
-        >
-          {submitting ? "Skickar..." : "🎭 Skicka gissning"}
-        </button>
 
         <button
           onClick={() => router.push(`/team/${team}`)}
