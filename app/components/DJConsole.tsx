@@ -99,10 +99,12 @@ export default function DJConsole() {
 
     const now = new Date().toISOString();
 
-    const { error: resetError } = await supabase
+   const { error: resetError } = await supabase
       .from("music_program")
       .update({ status: "planned" })
-      .eq("status", "playing");
+      .eq("status", "playing")
+.select();
+     
 
     if (resetError) {
       console.error("Error resetting playing status:", resetError);
@@ -112,13 +114,15 @@ export default function DJConsole() {
     }
 
     const { error: playError } = await supabase
-      .from("music_program")
-      .update({
-        status: "playing",
-        started_at: now,
-        last_played_at: now,
-      })
-      .eq("id", selectedItem.id);
+  .from("music_program")
+  .update({
+    status: "playing",
+    started_at: now,
+    last_played_at: now,
+  })
+  .eq("id", selectedItem.id)
+  .select();
+  
 
     if (playError) {
       console.error("Error setting item as playing:", playError);
@@ -128,7 +132,8 @@ export default function DJConsole() {
     }
 
     await fetchMusicProgram();
-    setUpdatingId(null);
+
+setUpdatingId(null);
   }
 
   function openSpotify(url: string | null) {
@@ -165,7 +170,9 @@ export default function DJConsole() {
           ) : nowPlaying ? (
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-4">
-                <span className="text-4xl">{getTypeIcon(nowPlaying.music_type)}</span>
+                <span className="text-4xl">
+                  {getTypeIcon(nowPlaying.music_type)}
+                </span>
                 <span
                   className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider ${getTypeBadgeClass(
                     nowPlaying.music_type
@@ -180,25 +187,25 @@ export default function DJConsole() {
                 )}
               </div>
 
-              <h2 className="text-5xl md:text-7xl font-black leading-tight">
+              <h2 className="text-5xl md:text-7xl font-black leading-tight tracking-tight">
                 {nowPlaying.title}
               </h2>
 
               {nowPlaying.subtitle && (
-                <p className="text-2xl md:text-3xl text-white/75 font-black mt-4">
+                <p className="text-2xl md:text-3xl text-white/75 font-black mt-4 leading-snug">
                   {nowPlaying.subtitle}
                 </p>
               )}
 
               {nowPlaying.notes && (
-                <p className="text-white/55 font-bold mt-5 max-w-3xl text-lg">
+                <p className="text-white/55 font-bold mt-5 max-w-3xl text-lg leading-relaxed">
                   {nowPlaying.notes}
                 </p>
               )}
             </div>
           ) : (
             <div>
-              <h2 className="text-4xl md:text-6xl font-black text-white/90 leading-tight">
+              <h2 className="text-4xl md:text-6xl font-black text-white/90 leading-tight tracking-tight">
                 No music playing
               </h2>
               <p className="text-white/50 font-bold mt-4 text-lg">
@@ -209,20 +216,20 @@ export default function DJConsole() {
         </section>
 
         <section className="grid md:grid-cols-2 gap-4">
-          <div className="rounded-3xl bg-white/8 border border-white/15 p-5">
+          <div className="rounded-3xl bg-white/8 border border-white/15 p-5 transition hover:bg-white/12 hover:border-cyan-300/35">
             <p className="text-xs uppercase tracking-widest text-white/40 font-black">
               Current Music
             </p>
-            <p className="text-2xl font-black mt-2">
+            <p className="text-2xl font-black mt-2 leading-tight">
               {nowPlaying ? nowPlaying.title : "None"}
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white/8 border border-white/15 p-5">
+          <div className="rounded-3xl bg-white/8 border border-white/15 p-5 transition hover:bg-white/12 hover:border-cyan-300/35">
             <p className="text-xs uppercase tracking-widest text-white/40 font-black">
               Next Recommendation
             </p>
-            <p className="text-2xl font-black mt-2">
+            <p className="text-2xl font-black mt-2 leading-tight">
               {nextRecommendation ? nextRecommendation.title : "None"}
             </p>
           </div>
@@ -237,17 +244,14 @@ export default function DJConsole() {
         <section>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
             <div>
-              <h2 className="text-3xl md:text-4xl font-black">Music Program</h2>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+                Tonight&apos;s Music Program
+              </h2>
               <p className="text-white/50 font-bold mt-1">
                 Recommended order — DJ may choose freely.
               </p>
             </div>
-
-            <p className="text-white/45 font-black uppercase tracking-widest text-sm">
-              {items.length} active items
-            </p>
           </div>
-
           <div className="grid gap-5">
             {items.map((item) => {
               const isPlaying = item.status === "playing";
@@ -257,19 +261,19 @@ export default function DJConsole() {
               return (
                 <div
                   key={item.id}
-                  className={`rounded-3xl p-5 md:p-6 border shadow-xl transition ${
+                  className={`rounded-3xl p-5 md:p-6 border shadow-xl transition duration-200 ${
                     isPlaying
                       ? "bg-emerald-400/15 border-emerald-300 shadow-emerald-900/40"
-                      : "bg-white/10 border-white/15"
+                      : "bg-white/10 border-white/15 hover:bg-white/14 hover:border-cyan-300/35 hover:-translate-y-0.5"
                   }`}
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
                     <div className="flex gap-4">
-                      <div className="text-4xl md:text-5xl">
+                      <div className="text-4xl md:text-5xl leading-none pt-1">
                         {getTypeIcon(item.music_type)}
                       </div>
 
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex flex-wrap gap-2 mb-3">
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${getTypeBadgeClass(
@@ -288,18 +292,18 @@ export default function DJConsole() {
                           </span>
                         </div>
 
-                        <h3 className="text-3xl md:text-4xl font-black leading-tight">
+                        <h3 className="text-3xl md:text-4xl font-black leading-tight tracking-tight">
                           {item.title}
                         </h3>
 
                         {item.subtitle && (
-                          <p className="text-white/75 font-black mt-2 text-lg">
+                          <p className="text-white/75 font-black mt-2 text-lg leading-snug">
                             {item.subtitle}
                           </p>
                         )}
 
                         {item.notes && (
-                          <p className="text-white/50 font-semibold mt-2 max-w-3xl">
+                          <p className="text-white/50 font-semibold mt-3 max-w-3xl leading-relaxed">
                             {item.notes}
                           </p>
                         )}
@@ -308,9 +312,9 @@ export default function DJConsole() {
 
                     <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:min-w-56">
                       {item.duration_minutes && (
-                        <div className="bg-black/35 rounded-2xl px-4 py-3 text-center">
+                        <div className="bg-black/35 rounded-2xl px-4 py-3 text-center border border-white/10">
                           <p className="text-xs uppercase tracking-widest text-white/40 font-black">
-                            Recommended
+                            Duration
                           </p>
                           <p className="text-xl font-black">
                             {item.duration_minutes} min
@@ -319,32 +323,36 @@ export default function DJConsole() {
                       )}
 
                       <button
-                        onClick={() => setAsPlaying(item)}
-                        disabled={isUpdating || isPlaying}
-                        className={`font-black text-center p-4 rounded-2xl border transition ${
-                          isPlaying
-                            ? "bg-emerald-400/20 text-emerald-200 border-emerald-400/40 cursor-default"
-                            : "bg-emerald-400 text-black border-emerald-300 hover:bg-emerald-300"
-                        }`}
-                      >
-                        {isPlaying
-                          ? "● Playing"
-                          : isUpdating
-                          ? "Updating..."
-                          : "▶ Set as Playing"}
-                      </button>
+  type="button"
+  onClick={() => {
+    
+    setAsPlaying(item);
+  }}
+  disabled={isUpdating || isPlaying}
+  className={`font-black text-center p-4 rounded-2xl border transition duration-200 ${
+    isPlaying
+      ? "bg-emerald-400/20 text-emerald-200 border-emerald-400/40 cursor-default"
+      : "bg-emerald-400 text-black border-emerald-300 hover:bg-emerald-300 hover:scale-[1.02] active:scale-[0.99]"
+  }`}
+>
+  {isPlaying
+    ? "● Playing"
+    : isUpdating
+    ? "Updating..."
+    : "▶ Set as Playing"}
+</button>
 
                       {item.music_type === "spotify" && (
                         <button
                           onClick={() => openSpotify(item.spotify_url)}
                           disabled={!hasSpotifyUrl}
-                          className={`font-black text-center p-4 rounded-2xl border transition ${
+                          className={`font-black text-center px-3 py-2 rounded-xl border text-sm transition duration-200 ${
                             hasSpotifyUrl
-                              ? "bg-white text-black border-white hover:bg-cyan-100"
-                              : "bg-white/10 text-white/35 border-white/10 cursor-not-allowed"
+                              ? "bg-white/10 text-white/70 border-white/15 hover:bg-white/18 hover:text-white hover:border-cyan-300/35"
+                              : "bg-white/5 text-white/25 border-white/10 cursor-not-allowed"
                           }`}
                         >
-                          🎵 Open Spotify
+                          Open Spotify
                         </button>
                       )}
                     </div>
